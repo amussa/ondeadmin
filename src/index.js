@@ -1,13 +1,102 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import {QueryClient, QueryClientProvider} from 'react-query';
 import './index.css';
-import App from './App';
 import reportWebVitals from './reportWebVitals';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import MainLayout from './Layouts/MainLayout';
+import About from './Pages/About';
+import Home from './Pages/Home';
+import Us from './Pages/Us';
+import Login from './Pages/Account/signin';
+import MenuStock from './Pages/stock';
+import Products from './Pages/stock/products';
+import Suppliers from './Pages/stock/suppliers';
+import StockIn from './Pages/stock/stockIn';
+import StockOut from './Pages/stock/stockOut';
+import MenuTutoria from './Pages/eventos';
+import Organizers from './Pages/eventos/Organizers';
+import MenuAccess from './Pages/access';
+import Docente from './Pages/access/docentes';
+import Tutor from './Pages/access/tutores';
+import Estudantes from './Pages/access/estudantes';
+import MenuFinancas from './Pages/financas';
+import DashboardFinancas from './Pages/financas/dashboard';
+import Relatorio from './Pages/financas/relatorio';
+import Gestao from './Pages/eventos/Gestao';
+import Categoria from './Pages/eventos/Categoria';
+import TypeEvent from './Pages/eventos/TipoEvento';
+
+const router = createBrowserRouter([
+  {
+    path: '/',
+    element: <MainLayout />,
+    children: [
+      { path: '/', element: <Home /> },
+      { path: '/about', element: <About /> },
+      { path: '/us', element: <Us /> }
+    ]
+  },
+  {
+    path: '/account/login',
+    element: <Login />
+  },
+  {
+    path: '/stock',
+    element: <MainLayout />,
+    children: [
+      { path: '/stock', element: <MenuStock /> },
+      { path: '/stock/products', element: <Products /> },
+      { path: '/stock/suppliers', element: <Suppliers /> },
+      { path: '/stock/stock-in', element: <StockIn /> },
+      { path: '/stock/stock-out', element: <StockOut /> },
+    ]
+  },
+  {
+    path: '/eventos',
+    element: <MainLayout />,
+    children: [
+      { path: '/eventos', element: <MenuTutoria /> },
+      { path: '/eventos/gestao', element: <Gestao /> },
+      { path: '/eventos/organizer', element: <Organizers /> },
+      { path: '/eventos/category', element: <Categoria /> },
+      { path: '/eventos/type', element: <TypeEvent /> },
+    ]
+  },
+  {
+    path: '/acessos',
+    element: <MainLayout />,
+    children: [
+      { path: '/acessos', element: <MenuAccess /> },
+      { path: '/acessos/docente', element: <Docente /> },
+      { path: '/acessos/tutor', element: <Tutor /> },
+      { path: '/acessos/estudante', element: <Estudantes /> },
+
+    ]
+  },
+  {
+    path: '/financas',
+    element: <MainLayout />,
+    children: [
+      { path: '/financas', element: <MenuFinancas /> },
+      { path: '/financas/dashboard', element: <DashboardFinancas /> },
+      { path: '/financas/relatorio', element: <Relatorio /> },
+    ]
+  },
+  {
+    
+  },
+
+]);
+
+const queryClient = new QueryClient();
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
-    <App />
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
   </React.StrictMode>
 );
 

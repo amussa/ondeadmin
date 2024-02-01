@@ -42,14 +42,14 @@ const Home = () => {
                 <MailOutlined className="mr-2" />
                 E-mail:
               </span>{' '}
-              admin@kudondza.com
+              nazariowizz@gmail.com
             </div>
             <div className="text-gray-500 mb-4">
               <span className="font-bold">
                 <PhoneOutlined className="mr-2" />
                 Telefone:
               </span>{' '}
-              (+258) 84-925-6188
+              (+258) 82-850-6206
             </div>
           </div>
         </Card>

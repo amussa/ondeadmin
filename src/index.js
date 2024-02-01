@@ -26,6 +26,9 @@ import Relatorio from './Pages/financas/relatorio';
 import Gestao from './Pages/eventos/Gestao';
 import Categoria from './Pages/eventos/Categoria';
 import TypeEvent from './Pages/eventos/TipoEvento';
+import MenuLocal from './Pages/local';
+import GestaoLocal from './Pages/local/Gestao';
+import CategoriaLocal from './Pages/local/Categoria';
 
 const router = createBrowserRouter([
   {
@@ -61,6 +64,15 @@ const router = createBrowserRouter([
       { path: '/eventos/organizer', element: <Organizers /> },
       { path: '/eventos/category', element: <Categoria /> },
       { path: '/eventos/type', element: <TypeEvent /> },
+    ]
+  },
+  {
+    path: '/locais',
+    element: <MainLayout />,
+    children: [
+      { path: '/locais', element: <MenuLocal /> },
+      { path: '/locais/gestao', element: <GestaoLocal /> },
+      { path: '/locais/category', element: <CategoriaLocal /> },
     ]
   },
   {

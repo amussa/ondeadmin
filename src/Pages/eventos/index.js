@@ -53,17 +53,6 @@ const MenuTutoria = () => {
             />
           </Card>
         </Link>
-        <Link to="/eventos/type">
-          <Card
-            hoverable
-            className="bg-purple-100"
-            cover={<div className="text-center p-4"><UnorderedListOutlined style={{ fontSize: '48px' }} /></div>}
-          >
-            <Meta
-              title={<div className="text-center">Tipos de Eventos</div>}
-            />
-          </Card>
-        </Link>
       </div>
     </div>
   );

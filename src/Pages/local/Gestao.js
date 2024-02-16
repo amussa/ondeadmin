@@ -56,8 +56,9 @@ const GestaoLocal = () => {
                 console.log("No matching documents.");
                 return;
             } else {
-                const disciplines = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-                setListGrades(disciplines);
+                let disciplines = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+                let notDeleted = disciplines.filter((item) => !item.deleted);
+                setListGrades(notDeleted);
             }
         } finally {
             setIsLoading(false);
@@ -80,7 +81,7 @@ const GestaoLocal = () => {
     const handleDeleteOk = (e) => {
         e.preventDefault();
         setConfirmLoading(true);
-        firebase.firestore().collection("local").doc(formEdit.getFieldValue('id')).delete().then(() => {
+        firebase.firestore().collection("local").doc(formEdit.getFieldValue('id')).update({deleted: true}).then(() => {
             notification.success({
                 message: 'Success',
                 description: 'Local deletado com sucesso'
@@ -110,18 +111,18 @@ const GestaoLocal = () => {
     const showEditDialog = (record) => () => {
         //formEdit.resetFields();
         setOpenEdit(true);
-        setLocation({ lat: record.lat, lng: record.lng });
+        setLocation({ lat: record?.lat, lng: record?.lng });
         formEdit.setFieldValue('id', record.id);
         formEdit.setFieldValue('name', record.name);
-        formEdit.setFieldValue('category', record.category.id);
+        formEdit.setFieldValue('category', record?.category?.id);
         let time = record.time;
         if (!moment.isMoment(time)) {
             time = moment(time, 'HH:mm');
         }
-        formEdit.setFieldValue('location', record.location);
-        formEdit.setFieldValue('phone', record.phone);
-        formEdit.setFieldValue('description', record.description);
-        formEdit.setFieldValue('coverImage', [{ uid: '1', name: 'image.png', status: 'done', url: record.coverImage }]);
+        formEdit.setFieldValue('location', record?.location);
+        formEdit.setFieldValue('phone', record?.phone);
+        formEdit.setFieldValue('description', record?.description);
+        formEdit.setFieldValue('coverImage', record.coverImage?[{ uid: '1', name: 'image.png', status: 'done', url: record.coverImage }]:null)
 
     };
 
@@ -147,7 +148,7 @@ const GestaoLocal = () => {
         Promise.all([
             db.collection('categoriaLocal').doc(categoryID).get(),
         ]).then(([categoryDoc]) => {
-            if (!categoryDoc.exists ) {
+            if (!categoryDoc.exists) {
                 console.error('One of the documents does not exist');
                 return;
             }
@@ -193,22 +194,22 @@ const GestaoLocal = () => {
 
         let url;
         const imageFile = formEdit.getFieldValue('coverImage')[0];
-      
+
         if (imageFile.originFileObj) {
-          const responseURI = await fetch(imageFile.thumbUrl);
-          const blob = await responseURI.blob();
-      
-          const storageRef = getStorage();
-          const imageRef = ref(storageRef, `imagens/${Date.now()}`);
-      
-          await uploadBytes(imageRef, blob);
-          url = await getDownloadURL(imageRef);
+            const responseURI = await fetch(imageFile.thumbUrl);
+            const blob = await responseURI.blob();
+
+            const storageRef = getStorage();
+            const imageRef = ref(storageRef, `imagens/${Date.now()}`);
+
+            await uploadBytes(imageRef, blob);
+            url = await getDownloadURL(imageRef);
         } else {
-          url = imageFile.url;
+            url = imageFile.url;
         }
-      
+
         const categoryID = formEdit.getFieldValue('category');
-      
+
         Promise.all([
             db.collection('categoriaLocal').doc(categoryID).get(),
         ]).then(([categoryDoc]) => {
@@ -280,6 +281,8 @@ const GestaoLocal = () => {
         {
             title: "Nome do Local",
             dataIndex: "name",
+            sorter: (a, b) => a.name.localeCompare(b.name),
+            defaultSortOrder: 'ascend',
         },
         {
             title: "Categoria",
@@ -296,6 +299,21 @@ const GestaoLocal = () => {
             dataIndex: "location",
             width: 250,
 
+        },
+        {
+            title: "Visualizações",
+            dataIndex: "views",
+            width: 150,
+        },
+        {
+            title: "Destaque",
+            dataIndex: "destaque",
+            width: 150,
+            render: (destaque) => (
+                <div>
+                    <div>{destaque==true ? 'Sim' : 'Não'}</div>
+                </div>
+            )
         },
         {
             title: "Actions",
@@ -346,6 +364,73 @@ const GestaoLocal = () => {
         return e && e.fileList;
     };
 
+    //Selection
+    const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+
+    const rowSelection = {
+        selectedRowKeys,
+        onChange: setSelectedRowKeys,
+    };
+
+    const handleButtonClick = () => {
+        // Aqui você pode fazer algo com as linhas selecionadas
+        console.log(selectedRowKeys);
+    };
+
+    const handleDestaques = () => {
+        const db = firebase.firestore();
+
+        try {
+            selectedRowKeys.forEach((id) => {
+                db.collection('local').doc(id).update({ destaque: true });
+            }
+            );
+        } finally {
+            setSelectedRowKeys([]);
+            fetchData();
+            notification.success({
+                message: 'Success',
+                description: 'Locais adcionados aos destaques'
+            })
+        }
+    }
+
+    const handleRemoveDestaques = () => {
+        const db = firebase.firestore();
+
+        try {
+            selectedRowKeys.forEach((id) => {
+                db.collection('local').doc(id).update({ destaque: false });
+            }
+            );
+        } finally {
+            setSelectedRowKeys([]);
+            fetchData();
+            notification.success({
+                message: 'Success',
+                description: 'Locais adcionados aos destaques'
+            })
+        }
+    }
+
+    const handleDelete = () => {
+        const db = firebase.firestore();
+
+        try {
+            selectedRowKeys.forEach((id) => {
+                db.collection('local').doc(id).update({deleted: true})
+            }
+            );
+        } finally {
+            setSelectedRowKeys([]);
+            fetchData();
+            notification.success({
+                message: 'Success',
+                description: 'Locais deletados com sucesso'
+            })
+        }
+    };
+
     return (
         <div className="flex flex-col gap-4 p-4 bg-white rounded-lg shadow-lg">
             <h1 className="text-xl font-bold mb-4">
@@ -374,19 +459,44 @@ const GestaoLocal = () => {
                         onChange={(e) => setNameFilter(e.target.value)}
                         className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
                     />
-                    <input
-                        type="text"
-                        placeholder="Search By ID"
-                        value={idFilter}
-                        onChange={(e) => setIdFilter(e.target.value)}
-                        className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:border-transparent"
-                    />
                 </div>
                 <Table
                     size="small"
                     loading={isLoading}
-                    dataSource={listGrades}
+                    dataSource={listGrades.filter((grade) => grade.name.toLowerCase().includes(nameFilter.toLowerCase()))}
                     columns={columns}
+                    pagination={{ pageSize: 5 }}
+                    rowSelection={rowSelection}
+                    rowKey={record => record.id}
+                    footer={() => (
+                        <div className="flex items-center justify-between">
+                            <p className="mr-2">{selectedRowKeys.length} items
+                                selected</p>
+                            {selectedRowKeys.length > 0 && (
+                                <div className="flex items-center gap-5 justify-end">
+                                    <Button
+                                        onClick={handleDestaques}
+                                        className="bg-green-600 text-white"
+                                    >
+                                        Adcionar aos Destaques
+                                    </Button>
+                                    <Button
+                                        onClick={handleRemoveDestaques}
+                                        className="bg-blue-600 text-white"
+                                    >
+                                        Remover dos Destaques
+                                    </Button>
+                                    <Button
+                                        onClick={handleDelete}
+                                        className="bg-red-600 text-white"
+                                    >
+                                        Eliminar
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    )
+                    }
                 />
             </div>
 
@@ -467,6 +577,13 @@ const GestaoLocal = () => {
                             <Input.TextArea />
                         </Form.Item>
                         <Form.Item
+                            name="hashtags"
+                            label="Hashtags"
+                            rules={[{ required: true, message: "Please enter the description" }]}
+                        >
+                            <Input.TextArea autoSize />
+                        </Form.Item>
+                        <Form.Item
                             name="coverImage"
                             label="Imagem de Capa"
                             valuePropName="fileList"
@@ -505,82 +622,89 @@ const GestaoLocal = () => {
                 width={900}
             >
                 <Form form={formEdit} layout="vertical" onFinish={handleEditOk}>
-                        <Row gutter={16}>
-                            <Col span={24}>
-                                <Form.Item
-                                    name="name"
-                                    label="Nome do Local"
-                                    rules={[{ required: true, message: "Please enter the name" }]}
-                                >
-                                    <Input />
-                                </Form.Item>
-                            </Col>
-                        </Row>
-                        <Row gutter={16}>
-                            <Col span={8}>
-                                <Form.Item
-                                    name="category"
-                                    label="Categoria do Local"
-                                    rules={[{ required: true, message: "Please select the category" }]}
-                                >
-                                    <Select placeholder="Selecione a categoria do Local">
-                                        {categories.map(category => (
-                                            <Option value={category.id}>{category.name}</Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                                <Form.Item
-                                    name="location"
-                                    label="Localização"
-                                    rules={[{ required: true, message: "Please enter the location" }]}
-                                >
-                                    <Input />
-                                </Form.Item>
-                            </Col>
-                            <Col span={8}>
-                                <Form.Item
-                                    name="phone"
-                                    label="Contacto"
-                                    rules={[{ required: true, message: "Please enter the contact" }]}
-                                >
-                                    <Input />
-                                </Form.Item>
-                            </Col>
-                        </Row>
-                        <Form.Item
-                            name="description"
-                            label="Descrição do Local"
-                            rules={[{ required: true, message: "Please enter the description" }]}
-                        >
-                            <Input.TextArea />
-                        </Form.Item>
-                        <Form.Item
-                            name="coverImage"
-                            label="Imagem de Capa"
-                            valuePropName="fileList"
-                            getValueFromEvent={normFile}
-                            rules={[{ required: true, message: "Please upload the cover image" }]}
-                        >
-                            <Upload name="logo" listType="picture" maxCount={1} beforeUpload={() => false}>
-                                <Button icon={<UploadOutlined />}>Clique para selecionar a imagem</Button>
-                            </Upload>
-                        </Form.Item>
-                        <Typography.Title level={5}>Localização no mapa</Typography.Title>
-                        <GoogleMap
-                            mapContainerStyle={mapStyles}
-                            zoom={13}
-                            center={location}
-                            onClick={onSelect}
-                        >
-                            <Marker key={location.lat} position={location} />
-                        </GoogleMap>
-                        <Form.Item>
-                            <Button className="bg-red-600 text-white mr-2" onClick={handleAddCancel}>Cancelar</Button>
-                            <Button className="bg-blue-600 text-white" htmlType="submit" loading={confirmLoading}>Registar</Button>
-                        </Form.Item>
-                    </Form>
+                    <Row gutter={16}>
+                        <Col span={24}>
+                            <Form.Item
+                                name="name"
+                                label="Nome do Local"
+                                rules={[{ required: true, message: "Please enter the name" }]}
+                            >
+                                <Input />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Row gutter={16}>
+                        <Col span={8}>
+                            <Form.Item
+                                name="category"
+                                label="Categoria do Local"
+                                rules={[{ required: true, message: "Please select the category" }]}
+                            >
+                                <Select placeholder="Selecione a categoria do Local">
+                                    {categories.map(category => (
+                                        <Option value={category.id}>{category.name}</Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                            <Form.Item
+                                name="location"
+                                label="Localização"
+                                rules={[{ required: true, message: "Please enter the location" }]}
+                            >
+                                <Input />
+                            </Form.Item>
+                        </Col>
+                        <Col span={8}>
+                            <Form.Item
+                                name="phone"
+                                label="Contacto"
+                                rules={[{ required: true, message: "Please enter the contact" }]}
+                            >
+                                <Input />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Form.Item
+                        name="description"
+                        label="Descrição do Local"
+                        rules={[{ required: true, message: "Please enter the description" }]}
+                    >
+                        <Input.TextArea />
+                    </Form.Item>
+                    <Form.Item
+                        name="hashtags"
+                        label="Hashtags"
+                        rules={[{ required: true, message: "Please enter the description" }]}
+                    >
+                        <Input.TextArea autoSize />
+                    </Form.Item>
+                    <Form.Item
+                        name="coverImage"
+                        label="Imagem de Capa"
+                        valuePropName="fileList"
+                        getValueFromEvent={normFile}
+                        rules={[{ required: true, message: "Please upload the cover image" }]}
+                    >
+                        <Upload name="logo" listType="picture" maxCount={1} beforeUpload={() => false}>
+                            <Button icon={<UploadOutlined />}>Clique para selecionar a imagem</Button>
+                        </Upload>
+                    </Form.Item>
+                    <Typography.Title level={5}>Localização no mapa</Typography.Title>
+                    <GoogleMap
+                        mapContainerStyle={mapStyles}
+                        zoom={13}
+                        center={location}
+                        onClick={onSelect}
+                    >
+                        <Marker key={location.lat} position={location} />
+                    </GoogleMap>
+                    <Form.Item>
+                        <Button className="bg-red-600 text-white mr-2" onClick={handleAddCancel}>Cancelar</Button>
+                        <Button className="bg-blue-600 text-white" htmlType="submit" loading={confirmLoading}>Registar</Button>
+                    </Form.Item>
+                </Form>
             </Modal>
 
 

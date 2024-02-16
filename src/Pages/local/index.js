@@ -11,7 +11,10 @@ import {
   AppstoreOutlined,
   UnorderedListOutlined,
   CalendarOutlined,
-  EnvironmentOutlined
+  EnvironmentOutlined,
+  LinkedinOutlined,
+  ToolOutlined,
+  SafetyCertificateOutlined
 } from "@ant-design/icons";
 
 const { Meta } = Card;
@@ -40,6 +43,17 @@ const MenuLocal = () => {
           >
             <Meta
               title={<div className="text-center">Categorias</div>}
+            />
+          </Card>
+        </Link>
+        <Link to="/locais/services">
+          <Card
+            hoverable
+            className="bg-green-100"
+            cover={<div className="text-center p-4"><SafetyCertificateOutlined style={{ fontSize: '48px' }} /></div>}
+          >
+            <Meta
+              title={<div className="text-center">Serviços</div>}
             />
           </Card>
         </Link>

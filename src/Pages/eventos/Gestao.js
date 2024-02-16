@@ -53,9 +53,11 @@ const Gestao = () => {
         setIsLoading(true);
         try {
             const db = firebase.firestore();
-            const data = await db.collection("evento").get();
+            const data = await db.collection("evento")
+            .get();
             const disciplines = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-            setListGrades(disciplines);
+            let notDeleted = disciplines.filter((item) => !item.deleted);
+            setListGrades(notDeleted);
         } finally {
             setIsLoading(false);
         }
@@ -93,7 +95,7 @@ const Gestao = () => {
     const handleDeleteOk = (e) => {
         e.preventDefault();
         setConfirmLoading(true);
-        firebase.firestore().collection("evento").doc(formEdit.getFieldValue('id')).delete().then(() => {
+        firebase.firestore().collection("evento").doc(formEdit.getFieldValue('id')).update({deleted: true}).then(() => {
             notification.success({
                 message: 'Success',
                 description: 'Evento deletado com sucesso'
@@ -137,7 +139,7 @@ const Gestao = () => {
         formEdit.setFieldValue('time', time);
         formEdit.setFieldValue('location', record.location);
         formEdit.setFieldValue('description', record.description);
-        formEdit.setFieldValue('coverImage', [{ uid: '1', name: 'image.png', status: 'done', url: record.coverImage }]);
+        formEdit.setFieldValue('coverImage', record.coverImage?[{ uid: '1', name: 'image.png', status: 'done', url: record.coverImage }]:null)
 
     };
 
@@ -185,6 +187,7 @@ const Gestao = () => {
                 time: form.getFieldValue('time').format('HH:mm'),
                 location: form.getFieldValue('location'),
                 description: form.getFieldValue('description'),
+                hashtags: form.getFieldValue('hashtags'),
                 lat: location.lat,
                 lng: location.lng,
                 coverImage: url,
@@ -218,20 +221,20 @@ const Gestao = () => {
 
         let url;
         const imageFile = formEdit.getFieldValue('coverImage')[0];
-      
+
         if (imageFile.originFileObj) {
-          const responseURI = await fetch(imageFile.thumbUrl);
-          const blob = await responseURI.blob();
-      
-          const storageRef = getStorage();
-          const imageRef = ref(storageRef, `imagens/${Date.now()}`);
-      
-          await uploadBytes(imageRef, blob);
-          url = await getDownloadURL(imageRef);
+            const responseURI = await fetch(imageFile.thumbUrl);
+            const blob = await responseURI.blob();
+
+            const storageRef = getStorage();
+            const imageRef = ref(storageRef, `imagens/${Date.now()}`);
+
+            await uploadBytes(imageRef, blob);
+            url = await getDownloadURL(imageRef);
         } else {
-          url = imageFile.url;
+            url = imageFile.url;
         }
-      
+
 
         const categoryID = formEdit.getFieldValue('category');
         const typeID = formEdit.getFieldValue('type');
@@ -263,6 +266,7 @@ const Gestao = () => {
                 time: formEdit.getFieldValue('time').format('HH:mm'),
                 location: formEdit.getFieldValue('location'),
                 description: formEdit.getFieldValue('description'),
+                hashtags: formEdit.getFieldValue('hashtags'),
                 lat: location.lat,
                 lng: location.lng,
                 coverImage: url
@@ -318,6 +322,8 @@ const Gestao = () => {
         {
             title: "Titulo",
             dataIndex: "name",
+            sorter: (a, b) => a.name.localeCompare(b.name),
+            defaultSortOrder: 'ascend',
         },
         {
             title: "Organizador",
@@ -355,6 +361,21 @@ const Gestao = () => {
             )
         },
         {
+            title: "Visualizações",
+            dataIndex: "views",
+            width: 150,
+        },
+        {
+            title: "Destaque",
+            dataIndex: "destaque",
+            width: 150,
+            render: (destaque) => (
+                <div>
+                    <div>{destaque==true ? 'Sim' : 'Não'}</div>
+                </div>
+            )
+        },
+        {
             title: "Actions",
             key: "actions",
             width: 200,
@@ -371,29 +392,7 @@ const Gestao = () => {
         },
     ];
 
-    //Test Rows
-    const productsData = [
-        {
-            id: 1,
-            name: "Produto 1",
-            category: "eletronics",
-            price: 750,
-            unit: "piece",
-            stock: 10,
-        },
-        {
-            id: 2,
-            name: "Produto 2",
-            category: "Categoria 2",
-            stock: 5,
-        },
-        {
-            id: 3,
-            name: "Produto 3",
-            category: "Categoria 1",
-            stock: 2,
-        },
-    ];
+
 
     //Map the rows
     const [location, setLocation] = useState({ lat: -25.953724, lng: 32.585789 });
@@ -423,6 +422,73 @@ const Gestao = () => {
             return e;
         }
         return e && e.fileList;
+    };
+
+    //Select the rows
+    const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+
+    const rowSelection = {
+        selectedRowKeys,
+        onChange: setSelectedRowKeys,
+    };
+
+    const handleButtonClick = () => {
+        // Aqui você pode fazer algo com as linhas selecionadas
+        console.log(selectedRowKeys);
+    };
+
+    const handleDestaques = () => {
+        const db = firebase.firestore();
+
+        try {
+            selectedRowKeys.forEach((id) => {
+                db.collection('evento').doc(id).update({ destaque: true });
+            }
+            );
+        } finally {
+            setSelectedRowKeys([]);
+            fetchData();
+            notification.success({
+                message: 'Success',
+                description: 'Eventos adcionados aos destaques'
+            })
+        }
+    }
+
+    const handleRemoveDestaques = () => {
+        const db = firebase.firestore();
+
+        try {
+            selectedRowKeys.forEach((id) => {
+                db.collection('evento').doc(id).update({ destaque: false });
+            }
+            );
+        } finally {
+            setSelectedRowKeys([]);
+            fetchData();
+            notification.success({
+                message: 'Success',
+                description: 'Eventos adcionados aos destaques'
+            })
+        }
+    }
+
+    const handleDelete = () => {
+        const db = firebase.firestore();
+
+        try {
+            selectedRowKeys.forEach((id) => {
+                db.collection('evento').doc(id).update({deleted: true})
+            }
+            );
+        } finally {
+            setSelectedRowKeys([]);
+            fetchData();
+            notification.success({
+                message: 'Success',
+                description: 'Eventos deletados com sucesso'
+            })
+        }
     };
 
     return (
@@ -466,10 +532,42 @@ const Gestao = () => {
                     loading={isLoading}
                     dataSource={listGrades.filter(
                         (item) =>
-                            item.name.includes(nameFilter) &&
+                            item.name.toLowerCase().includes(nameFilter.toLowerCase()) &&
                             item.id.toString().includes(idFilter)
                     )}
                     columns={columns}
+                    pagination={{ pageSize: 5 }}
+                    rowSelection={rowSelection}
+                    rowKey={record => record.id}
+                    footer={() => (
+                        <div className="flex items-center justify-between">
+                            <p className="mr-2">{selectedRowKeys.length} items
+                                selected</p>
+                            {selectedRowKeys.length > 0 && (
+                                <div className="flex items-center gap-5 justify-end">
+                                    <Button
+                                        onClick={handleDestaques}
+                                        className="bg-green-600 text-white"
+                                    >
+                                        Adcionar aos Destaques
+                                    </Button>
+                                    <Button
+                                        onClick={handleRemoveDestaques}
+                                        className="bg-blue-600 text-white"
+                                    >
+                                        Remover dos Destaques
+                                    </Button>
+                                    <Button
+                                        onClick={handleDelete}
+                                        className="bg-red-600 text-white"
+                                    >
+                                        Eliminar
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    )
+                    }
                 />
             </div>
 
@@ -585,6 +683,13 @@ const Gestao = () => {
                             rules={[{ required: true, message: "Please enter the description" }]}
                         >
                             <Input.TextArea />
+                        </Form.Item>
+                        <Form.Item
+                            name="hashtags"
+                            label="Hashtags"
+                            rules={[{ required: true, message: "Please enter the description" }]}
+                        >
+                            <Input.TextArea autoSize />
                         </Form.Item>
                         <Form.Item
                             name="coverImage"
@@ -712,6 +817,13 @@ const Gestao = () => {
                         rules={[{ required: true, message: "Please enter the description" }]}
                     >
                         <Input.TextArea />
+                    </Form.Item>
+                    <Form.Item
+                        name="hashtags"
+                        label="Hashtags"
+                        rules={[{ required: true, message: "Please enter the description" }]}
+                    >
+                        <Input.TextArea autoSize />
                     </Form.Item>
                     <Form.Item
                         name="coverImage"

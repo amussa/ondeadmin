@@ -191,7 +191,8 @@ const Gestao = () => {
                 lat: location.lat,
                 lng: location.lng,
                 coverImage: url,
-                views: 0
+                views: 0,
+                categoria:'novo'
             };
 
             db.collection('evento').add(newEvent)

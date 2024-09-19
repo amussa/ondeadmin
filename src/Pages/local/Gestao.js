@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Upload, Icon, Skeleton, Input, Select, Table, Divider, Button, Space, Modal, Form, notification, Col, Row, DatePicker, TimePicker, Typography } from "antd";
@@ -12,6 +12,8 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { GoogleMap, Marker, LoadScript, useJsApiLoader } from "@react-google-maps/api";
 import { UploadOutlined } from '@ant-design/icons';
 import moment from 'moment';
+import imageCompression from 'browser-image-compression';
+import { DownloadTableExcel } from 'react-export-table-to-excel';
 
 const { Option } = Select;
 
@@ -37,6 +39,7 @@ const GestaoLocal = () => {
     const [categories, setCategories] = useState([]);
     const [types, setTypes] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const printRef = useRef();
 
     //Methods
     useEffect(() => {
@@ -81,7 +84,7 @@ const GestaoLocal = () => {
     const handleDeleteOk = (e) => {
         e.preventDefault();
         setConfirmLoading(true);
-        firebase.firestore().collection("local").doc(formEdit.getFieldValue('id')).update({deleted: true}).then(() => {
+        firebase.firestore().collection("local").doc(formEdit.getFieldValue('id')).update({ deleted: true }).then(() => {
             notification.success({
                 message: 'Success',
                 description: 'Local deletado com sucesso'
@@ -109,12 +112,12 @@ const GestaoLocal = () => {
     };
 
     const showEditDialog = (record) => () => {
-        //formEdit.resetFields();
+        formEdit.resetFields();
         setOpenEdit(true);
         setLocation({ lat: record?.lat, lng: record?.lng });
         formEdit.setFieldValue('id', record.id);
         formEdit.setFieldValue('name', record.name);
-        formEdit.setFieldValue('category', record?.category?.id);
+        formEdit.setFieldValue('category', Array.isArray(record?.category) ? record?.category?.map(cat => cat.id) : [record?.category?.id]);
         let time = record.time;
         if (!moment.isMoment(time)) {
             time = moment(time, 'HH:mm');
@@ -122,7 +125,9 @@ const GestaoLocal = () => {
         formEdit.setFieldValue('location', record?.location);
         formEdit.setFieldValue('phone', record?.phone);
         formEdit.setFieldValue('description', record?.description);
-        formEdit.setFieldValue('coverImage', record.coverImage?[{ uid: '1', name: 'image.png', status: 'done', url: record.coverImage }]:null)
+        formEdit.setFieldValue('description_en', record?.description_en);
+        formEdit.setFieldValue('hashtags', record?.hashtags);
+        formEdit.setFieldValue('coverImage', record.coverImage ? [{ uid: '1', name: 'image.png', status: 'done', url: record.coverImage }] : null)
 
     };
 
@@ -133,34 +138,37 @@ const GestaoLocal = () => {
 
         const imageFile = form.getFieldValue('coverImage')[0];
 
-        const responseURI = await fetch(imageFile.thumbUrl);
-        const blob = await responseURI.blob();
+        // Opções de compressão
+        const options = {
+            maxSizeMB: 1, // Tamanho máximo do arquivo em MB
+            maxWidthOrHeight: 800, // Tamanho máximo de largura ou altura
+            useWebWorker: true, // Usar Web Worker para compressão em segundo plano
+        };
 
-        const categoryID = form.getFieldValue('category');
+        const responseURI = await fetch(imageFile.thumbUrl);
+        const compressedFile = await imageCompression(imageFile.originFileObj, options);
+
+        const categoryIDs = form.getFieldValue('category');
 
         const storageRef = getStorage();
 
         const imageRef = ref(storageRef, `imagens/${Date.now()}`);
 
-        await uploadBytes(imageRef, blob);
+        await uploadBytes(imageRef, compressedFile);
         const url = await getDownloadURL(imageRef);
 
-        Promise.all([
-            db.collection('categoriaLocal').doc(categoryID).get(),
-        ]).then(([categoryDoc]) => {
-            if (!categoryDoc.exists) {
-                console.error('One of the documents does not exist');
-                return;
-            }
-
-            const categoryData = { id: categoryDoc.id, ...categoryDoc.data() };
+        const categoryPromises = categoryIDs.map(id => db.collection('categoriaLocal').doc(id).get());
+        Promise.all(categoryPromises).then((categoryDocs) => {
+            const categoriesData = categoryDocs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             const newEvent = {
                 name: form.getFieldValue('name'),
-                category: categoryData,
+                category: categoriesData,
                 location: form.getFieldValue('location'),
                 phone: form.getFieldValue('phone'),
                 description: form.getFieldValue('description'),
+                description_en: form.getFieldValue('description_en'),
+                hashtags: form.getFieldValue('hashtags'),
                 lat: location.lat,
                 lng: location.lng,
                 coverImage: url,
@@ -185,7 +193,6 @@ const GestaoLocal = () => {
                     setConfirmLoading(false);
                 });
         });
-
     };
 
     const handleEditOk = async (e) => {
@@ -195,37 +202,40 @@ const GestaoLocal = () => {
         let url;
         const imageFile = formEdit.getFieldValue('coverImage')[0];
 
+        // Opções de compressão
+        const options = {
+            maxSizeMB: 1, // Tamanho máximo do arquivo em MB
+            maxWidthOrHeight: 800, // Tamanho máximo de largura ou altura
+            useWebWorker: true, // Usar Web Worker para compressão em segundo plano
+        };
+
         if (imageFile.originFileObj) {
             const responseURI = await fetch(imageFile.thumbUrl);
-            const blob = await responseURI.blob();
+            const compressedFile = await imageCompression(imageFile.originFileObj, options);
 
             const storageRef = getStorage();
             const imageRef = ref(storageRef, `imagens/${Date.now()}`);
 
-            await uploadBytes(imageRef, blob);
+            await uploadBytes(imageRef, compressedFile);
             url = await getDownloadURL(imageRef);
         } else {
             url = imageFile.url;
         }
 
-        const categoryID = formEdit.getFieldValue('category');
+        const categoryIDs = formEdit.getFieldValue('category');
 
-        Promise.all([
-            db.collection('categoriaLocal').doc(categoryID).get(),
-        ]).then(([categoryDoc]) => {
-            if (!categoryDoc.exists) {
-                console.error('One of the documents does not exist');
-                return;
-            }
-
-            const categoryData = { id: categoryDoc.id, ...categoryDoc.data() };
+        const categoryPromises = categoryIDs.map(id => db.collection('categoriaLocal').doc(id).get());
+        Promise.all(categoryPromises).then((categoryDocs) => {
+            const categoriesData = categoryDocs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             const newEvent = {
                 name: formEdit.getFieldValue('name'),
-                category: categoryData,
+                category: categoriesData,
                 location: formEdit.getFieldValue('location'),
                 phone: formEdit.getFieldValue('phone'),
                 description: formEdit.getFieldValue('description'),
+                description_en: formEdit.getFieldValue('description_en'),
+                hashtags: formEdit.getFieldValue('hashtags'),
                 lat: location.lat,
                 lng: location.lng,
                 coverImage: url
@@ -248,9 +258,7 @@ const GestaoLocal = () => {
                     setOpenEdit(false);
                     setConfirmLoading(false);
                 });
-
         });
-
     };
 
 
@@ -290,7 +298,7 @@ const GestaoLocal = () => {
             width: 150,
             render: (category) => (
                 <div>
-                    <div>{category?.name}</div>
+                    <div>{Array.isArray(category) ? category.map(cat => cat.name).join(', ') : category.name}</div>
                 </div>
             )
         },
@@ -311,7 +319,7 @@ const GestaoLocal = () => {
             width: 150,
             render: (destaque) => (
                 <div>
-                    <div>{destaque==true ? 'Sim' : 'Não'}</div>
+                    <div>{destaque == true ? 'Sim' : 'Não'}</div>
                 </div>
             )
         },
@@ -331,6 +339,82 @@ const GestaoLocal = () => {
             ),
         },
     ];
+
+    const allColumns = [
+        {
+            title: "ID",
+            dataIndex: "id",
+            width: 100,
+            key: "id",
+        },
+        {
+            title: "Nome do Local",
+            dataIndex: "name",
+            sorter: (a, b) => a.name.localeCompare(b.name),
+            defaultSortOrder: 'ascend',
+        },
+        {
+            title: "Categoria",
+            dataIndex: "category",
+            width: 150,
+            render: (category) => (
+                <div>
+                    <div>{Array.isArray(category) ? category.map(cat => cat.name).join(', ') : category.name}</div>
+                </div>
+            )
+        },
+        {
+            title: "Local",
+            dataIndex: "location",
+            width: 250,
+
+        },
+        {
+            title: "URL Cover",
+            dataIndex: "coverImage",
+            width: 250,
+        },
+        {
+            title: "Contacto",
+            dataIndex: "phone",
+            width: 150,
+        },
+        {
+            title: "Descrição",
+            dataIndex: "description",
+            width: 150,
+        },
+        {
+            title: "Hashtags",
+            dataIndex: "hashtags",
+            width: 150,
+        },
+        {
+            title: "Latitude",
+            dataIndex: "lat",
+            width: 150,
+        },
+        {
+            title: "Longitude",
+            dataIndex: "lng",
+            width: 150,
+        },
+        {
+            title: "Visualizações",
+            dataIndex: "views",
+            width: 150,
+        },
+        {
+            title: "Destaque",
+            dataIndex: "destaque",
+            width: 150,
+            render: (destaque) => (
+                <div>
+                    <div>{destaque == true ? 'Sim' : 'Não'}</div>
+                </div>
+            )
+        },
+    ]
 
     //Test Rows
 
@@ -418,7 +502,7 @@ const GestaoLocal = () => {
 
         try {
             selectedRowKeys.forEach((id) => {
-                db.collection('local').doc(id).update({deleted: true})
+                db.collection('local').doc(id).update({ deleted: true })
             }
             );
         } finally {
@@ -447,9 +531,15 @@ const GestaoLocal = () => {
                         <Button className="border-purple-600 text-purple-600 cursor-pointer hover:bg-yellow-200 mr-2">
                             Importar
                         </Button>
-                        <Button className="border-purple-600 text-purple-600 cursor-pointer hover:bg-purple-200">
-                            Exportar
-                        </Button>
+                        <DownloadTableExcel
+                            filename="locais"
+                            sheet="locais"
+                            currentTableRef={printRef.current}
+                        >
+                            <Button className="border-purple-600 text-purple-600 cursor-pointer hover:bg-yellow-200 mr-2">
+                                Exportar
+                            </Button>
+                        </DownloadTableExcel>
                     </div>
                     <Divider type="vertical" className="h-8" />
                     <input
@@ -465,7 +555,7 @@ const GestaoLocal = () => {
                     loading={isLoading}
                     dataSource={listGrades.filter((grade) => grade.name.toLowerCase().includes(nameFilter.toLowerCase()))}
                     columns={columns}
-                    pagination={{ pageSize: 5 }}
+                    pagination={{ pageSizeOptions: ['10', '20', '50', '100'], showSizeChanger: true }}
                     rowSelection={rowSelection}
                     rowKey={record => record.id}
                     footer={() => (
@@ -503,7 +593,7 @@ const GestaoLocal = () => {
             {/* Modal for Delete Products */}
             <Modal
                 okButtonProps={{ danger: true }}
-                title="Deletar Evento"
+                title="Deletar Local"
                 open={openDelete}
                 onOk={handleDeleteOk}
                 confirmLoading={confirmLoading}
@@ -515,7 +605,7 @@ const GestaoLocal = () => {
             {/* Modal for Add Products */}
             <Modal
                 okButtonProps={{ className: "bg-green-600 text-white-600 cursor-pointer hover:bg-green-200 mr-2" }}
-                title="Adcionar Novo Evento"
+                title="Adcionar Novo Local"
                 footer={[]}
                 onCancel={handleAddCancel}
                 open={openAdd}
@@ -543,7 +633,10 @@ const GestaoLocal = () => {
                                     label="Categoria do Local"
                                     rules={[{ required: true, message: "Please select the category" }]}
                                 >
-                                    <Select placeholder="Selecione a categoria do Local">
+                                    <Select
+                                        placeholder="Selecione a categoria do Local"
+                                        mode="multiple"
+                                    >
                                         {categories.map(category => (
                                             <Option value={category.id}>{category.name}</Option>
                                         ))}
@@ -569,13 +662,26 @@ const GestaoLocal = () => {
                                 </Form.Item>
                             </Col>
                         </Row>
-                        <Form.Item
-                            name="description"
-                            label="Descrição do Local"
-                            rules={[{ required: true, message: "Please enter the description" }]}
-                        >
-                            <Input.TextArea />
-                        </Form.Item>
+                        <Row gutter={16}>
+                            <Col span={12}>
+                                <Form.Item
+                                    name="description"
+                                    label="Descrição em Português"
+                                    rules={[{ required: true, message: "Please enter the description" }]}
+                                >
+                                    <Input.TextArea />
+                                </Form.Item>
+                            </Col>
+                            <Col span={12}>
+                                <Form.Item
+                                    name="description_en"
+                                    label="Descrição em Inglês"
+                                    rules={[{ required: true, message: "Please enter the description" }]}
+                                >
+                                    <Input.TextArea />
+                                </Form.Item>
+                            </Col>
+                        </Row>
                         <Form.Item
                             name="hashtags"
                             label="Hashtags"
@@ -614,7 +720,7 @@ const GestaoLocal = () => {
             {/* Modal for Edit Products */}
             <Modal
                 okButtonProps={{ className: "bg-green-600 text-white-600 cursor-pointer hover:bg-green-200 mr-2" }}
-                title="Editar Informações do Evento"
+                title="Editar Informações do Local"
                 footer={[]}
                 onCancel={handleEditCancel}
                 open={openEdit}
@@ -640,7 +746,9 @@ const GestaoLocal = () => {
                                 label="Categoria do Local"
                                 rules={[{ required: true, message: "Please select the category" }]}
                             >
-                                <Select placeholder="Selecione a categoria do Local">
+                                <Select
+                                    mode="multiple"
+                                    placeholder="Selecione a categoria do Local">
                                     {categories.map(category => (
                                         <Option value={category.id}>{category.name}</Option>
                                     ))}
@@ -666,13 +774,26 @@ const GestaoLocal = () => {
                             </Form.Item>
                         </Col>
                     </Row>
-                    <Form.Item
-                        name="description"
-                        label="Descrição do Local"
-                        rules={[{ required: true, message: "Please enter the description" }]}
-                    >
-                        <Input.TextArea />
-                    </Form.Item>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item
+                                name="description"
+                                label="Descrição em Português"
+                                rules={[{ required: true, message: "Please enter the description" }]}
+                            >
+                                <Input.TextArea />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item
+                                name="description_en"
+                                label="Descrição em Inglês"
+                                rules={[{ required: true, message: "Please enter the description" }]}
+                            >
+                                <Input.TextArea />
+                            </Form.Item>
+                        </Col>
+                    </Row>
                     <Form.Item
                         name="hashtags"
                         label="Hashtags"
@@ -707,6 +828,16 @@ const GestaoLocal = () => {
                 </Form>
             </Modal>
 
+            <div className="hidden">
+                <Table
+                    ref={printRef}
+                    dataSource={listGrades}
+                    columns={allColumns}
+                    pagination={false}
+                    rowKey="id"
+                    rowClassName={() => 'custom-row'}
+                />
+            </div>
 
         </div>
     );

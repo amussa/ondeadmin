@@ -84,6 +84,7 @@ const CategoriaLocal = () => {
     };
 
     const showEditDialog = (record) => () => {
+        formEdit.resetFields();
         setOpenEdit(true);
         formEdit.setFieldsValue(record);
     };
@@ -92,6 +93,7 @@ const CategoriaLocal = () => {
         setConfirmLoading(true);
         firebase.firestore().collection("categoriaLocal").add({
             name: form.getFieldValue('name'),
+            name_en: form.getFieldValue('name_en'),
             members: 0
         }).then(() => {
             notification.success({
@@ -113,7 +115,8 @@ const CategoriaLocal = () => {
     const handleEditOk = (e) => {
         setConfirmLoading(true);
         firebase.firestore().collection("categoriaLocal").doc(formEdit.getFieldValue('id')).update({
-            name: formEdit.getFieldValue('name')
+            name: formEdit.getFieldValue('name'),
+            name_en: formEdit.getFieldValue('name_en'),
         }).then(() => {
             notification.success({
                 message: 'Success',
@@ -274,6 +277,13 @@ const CategoriaLocal = () => {
                     >
                         <Input />
                     </Form.Item>
+                    <Form.Item
+                        name="name_en"
+                        label="Nome em Inglês"
+                        rules={[{ required: true, message: "Please enter the category name" }]}
+                    >
+                        <Input />
+                    </Form.Item>
                     <Form.Item>
                         <Button className="bg-red-600 text-white mr-2" onClick={handleAddCancel}>Cancelar</Button>
                         <Button className="bg-blue-600 text-white" htmlType="submit" loading={confirmLoading}>Registar</Button>
@@ -294,6 +304,13 @@ const CategoriaLocal = () => {
                     <Form.Item
                         name="name"
                         label="Nome"
+                        rules={[{ required: true, message: "Please enter the category name" }]}
+                    >
+                        <Input />
+                    </Form.Item>
+                    <Form.Item
+                        name="name_en"
+                        label="Nome em Inglês"
                         rules={[{ required: true, message: "Please enter the category name" }]}
                     >
                         <Input />

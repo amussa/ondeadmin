@@ -73,7 +73,7 @@ const MainLayout = () => {
                 </Popconfirm>
 
               </div>
-              <div className=" w-full justify-center flex gap-5 px-2 py-1 font-sans bg-purple-900">
+              <div className=" w-full justify-center flex gap-5 px-2 py-1 font-sans" style={{backgroundColor:'#A617A6'}}>
                 <div
                   className={`hover:bg-purple-800 cursor-pointer hover:shadow-lg px-2 py-3 flex flex-col items-center gap-2 rounded-md ${location.pathname === '/' ? 'bg-purple-900 text-white' : 'text-gray-400'}`}
                   onClick={() => { setSelectedOption(0); navigate('/') }}

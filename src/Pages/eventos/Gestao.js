@@ -12,6 +12,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { GoogleMap, Marker, LoadScript, useJsApiLoader } from "@react-google-maps/api";
 import { UploadOutlined } from '@ant-design/icons';
 import moment from 'moment';
+import imageCompression from 'browser-image-compression';
 
 const { Option } = Select;
 
@@ -37,6 +38,7 @@ const Gestao = () => {
     const [categories, setCategories] = useState([]);
     const [types, setTypes] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [places, setPlaces] = useState([]);
 
     //Methods
     useEffect(() => {
@@ -44,6 +46,7 @@ const Gestao = () => {
         fetchCategories();
         fetchTypes();
         fetchData();
+        fetchPlaces();
         return () => {
             setLoadScript(false);
         };
@@ -54,7 +57,7 @@ const Gestao = () => {
         try {
             const db = firebase.firestore();
             const data = await db.collection("evento")
-            .get();
+                .get();
             const disciplines = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             let notDeleted = disciplines.filter((item) => !item.deleted);
             setListGrades(notDeleted);
@@ -62,6 +65,20 @@ const Gestao = () => {
             setIsLoading(false);
         }
     };
+
+    const fetchPlaces = async () => {
+        const db = firebase.firestore();
+        const data = await db.collection("local")
+            .get();
+        if (data.empty) {
+            console.log("No matching documents.");
+            return;
+        } else {
+            let disciplines = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+            let notDeleted = disciplines.filter((item) => !item.deleted);
+            setPlaces(notDeleted);
+        }
+    }
 
     const fetchOrganizers = async () => {
         const db = firebase.firestore();
@@ -95,7 +112,7 @@ const Gestao = () => {
     const handleDeleteOk = (e) => {
         e.preventDefault();
         setConfirmLoading(true);
-        firebase.firestore().collection("evento").doc(formEdit.getFieldValue('id')).update({deleted: true}).then(() => {
+        firebase.firestore().collection("evento").doc(formEdit.getFieldValue('id')).update({ deleted: true }).then(() => {
             notification.success({
                 message: 'Success',
                 description: 'Evento deletado com sucesso'
@@ -123,13 +140,12 @@ const Gestao = () => {
     };
 
     const showEditDialog = (record) => () => {
-        //formEdit.resetFields();
+        formEdit.resetFields();
         setOpenEdit(true);
         setLocation({ lat: record.lat, lng: record.lng });
         formEdit.setFieldValue('id', record.id);
         formEdit.setFieldValue('name', record.name);
-        formEdit.setFieldValue('category', record.category.id);
-        formEdit.setFieldValue('type', record.type.id);
+        formEdit.setFieldValue('category', Array.isArray(record?.category) ? record?.category?.map(cat => cat.id) : [record?.category?.id]);
         formEdit.setFieldValue('organizer', record.organizer.id);
         formEdit.setFieldValue('data', moment(record.data.toDate(), 'DD/MM/YYYY'));
         let time = record.time;
@@ -139,7 +155,9 @@ const Gestao = () => {
         formEdit.setFieldValue('time', time);
         formEdit.setFieldValue('location', record.location);
         formEdit.setFieldValue('description', record.description);
-        formEdit.setFieldValue('coverImage', record.coverImage?[{ uid: '1', name: 'image.png', status: 'done', url: record.coverImage }]:null)
+        formEdit.setFieldValue('description_en', record.description_en);
+        formEdit.setFieldValue('hashtags', record.hashtags);
+        formEdit.setFieldValue('coverImage', record.coverImage ? [{ uid: '1', name: 'image.png', status: 'done', url: record.coverImage }] : null)
 
     };
 
@@ -150,49 +168,58 @@ const Gestao = () => {
 
         const imageFile = form.getFieldValue('coverImage')[0];
 
-        const responseURI = await fetch(imageFile.thumbUrl);
-        const blob = await responseURI.blob();
 
-        const categoryID = form.getFieldValue('category');
-        const typeID = form.getFieldValue('type');
+        // Opções de compressão
+        const options = {
+            maxSizeMB: 1, // Tamanho máximo do arquivo em MB
+            maxWidthOrHeight: 800, // Tamanho máximo de largura ou altura
+            useWebWorker: true, // Usar Web Worker para compressão em segundo plano
+        };
+
+        const responseURI = await fetch(imageFile.thumbUrl);
+
         const organizerID = form.getFieldValue('organizer');
 
         const storageRef = getStorage();
 
+        const compressedFile = await imageCompression(imageFile.originFileObj, options);
         const imageRef = ref(storageRef, `imagens/${Date.now()}`);
 
-        await uploadBytes(imageRef, blob);
+        await uploadBytes(imageRef, compressedFile);
         const url = await getDownloadURL(imageRef);
 
+        const categoryIDs = form.getFieldValue('category');
+
+        let categoryPromises = categoryIDs.map(id => db.collection('categoria').doc(id).get());
+        let categoryDocs = await Promise.all(categoryPromises);
+        let categoriesData = categoryDocs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log(categoriesData);
+
         Promise.all([
-            db.collection('categoria').doc(categoryID).get(),
-            db.collection('tipo').doc(typeID).get(),
             db.collection('organizador').doc(organizerID).get(),
-        ]).then(([categoryDoc, typeDoc, organizerDoc]) => {
-            if (!categoryDoc.exists || !typeDoc.exists || !organizerDoc.exists) {
+        ]).then(([organizerDoc]) => {
+            if (!organizerDoc.exists) {
                 console.error('One of the documents does not exist');
                 return;
             }
 
-            const categoryData = { id: categoryDoc.id, ...categoryDoc.data() };
-            const typeData = { id: typeDoc.id, ...typeDoc.data() };
             const organizerData = { id: organizerDoc.id, ...organizerDoc.data() };
 
             const newEvent = {
                 name: form.getFieldValue('name'),
-                category: categoryData,
-                type: typeData,
+                category: categoriesData,
                 organizer: organizerData,
                 data: form.getFieldValue('data').toDate(),
                 time: form.getFieldValue('time').format('HH:mm'),
-                location: form.getFieldValue('location'),
+                location: places.filter(place => place.id === form.getFieldValue('location'))[0].name,
                 description: form.getFieldValue('description'),
+                description_en: form.getFieldValue('description_en'),
                 hashtags: form.getFieldValue('hashtags'),
                 lat: location.lat,
                 lng: location.lng,
                 coverImage: url,
                 views: 0,
-                categoria:'novo'
+                categoria: 'novo'
             };
 
             db.collection('evento').add(newEvent)
@@ -223,50 +250,54 @@ const Gestao = () => {
         let url;
         const imageFile = formEdit.getFieldValue('coverImage')[0];
 
+        // Opções de compressão
+        const options = {
+            maxSizeMB: 1, // Tamanho máximo do arquivo em MB
+            maxWidthOrHeight: 800, // Tamanho máximo de largura ou altura
+            useWebWorker: true, // Usar Web Worker para compressão em segundo plano
+        };
+
         if (imageFile.originFileObj) {
             const responseURI = await fetch(imageFile.thumbUrl);
-            const blob = await responseURI.blob();
+            const compressedFile = await imageCompression(imageFile.originFileObj, options);
 
             const storageRef = getStorage();
             const imageRef = ref(storageRef, `imagens/${Date.now()}`);
 
-            await uploadBytes(imageRef, blob);
+            await uploadBytes(imageRef, compressedFile);
             url = await getDownloadURL(imageRef);
         } else {
             url = imageFile.url;
         }
 
 
-        const categoryID = formEdit.getFieldValue('category');
-        const typeID = formEdit.getFieldValue('type');
+        const categoryIDs = formEdit.getFieldValue('category');
+        console.log(categoryIDs)
+
+
         const organizerID = formEdit.getFieldValue('organizer');
 
         const storageRef = getStorage();
 
 
         Promise.all([
-            db.collection('categoria').doc(categoryID).get(),
-            db.collection('tipo').doc(typeID).get(),
+            db.collection('categoria').where(firebase.firestore.FieldPath.documentId(), 'in', categoryIDs).get(),
             db.collection('organizador').doc(organizerID).get(),
-        ]).then(([categoryDoc, typeDoc, organizerDoc]) => {
-            if (!categoryDoc.exists || !typeDoc.exists || !organizerDoc.exists) {
-                console.error('One of the documents does not exist');
-                return;
-            }
+        ]).then(([categoryDoc,organizerDoc]) => {
+            
 
-            const categoryData = { id: categoryDoc.id, ...categoryDoc.data() };
-            const typeData = { id: typeDoc.id, ...typeDoc.data() };
             const organizerData = { id: organizerDoc.id, ...organizerDoc.data() };
+            const categoriesData = categoryDoc.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             const newEvent = {
                 name: formEdit.getFieldValue('name'),
-                category: categoryData,
-                type: typeData,
+                category: categoriesData,
                 organizer: organizerData,
                 data: formEdit.getFieldValue('data').toDate(),
                 time: formEdit.getFieldValue('time').format('HH:mm'),
-                location: formEdit.getFieldValue('location'),
+                location: places.filter(place => place.id === formEdit.getFieldValue('location'))[0].name,
                 description: formEdit.getFieldValue('description'),
+                description_en: formEdit.getFieldValue('description_en'),
                 hashtags: formEdit.getFieldValue('hashtags'),
                 lat: location.lat,
                 lng: location.lng,
@@ -341,7 +372,7 @@ const Gestao = () => {
             width: 150,
             render: (category) => (
                 <div>
-                    <div>{category.name}</div>
+                    <div>{Array.isArray(category) ? category.map(cat => cat.name).join(', ') : category.name}</div>
                 </div>
             )
         },
@@ -372,7 +403,7 @@ const Gestao = () => {
             width: 150,
             render: (destaque) => (
                 <div>
-                    <div>{destaque==true ? 'Sim' : 'Não'}</div>
+                    <div>{destaque == true ? 'Sim' : 'Não'}</div>
                 </div>
             )
         },
@@ -479,7 +510,7 @@ const Gestao = () => {
 
         try {
             selectedRowKeys.forEach((id) => {
-                db.collection('evento').doc(id).update({deleted: true})
+                db.collection('evento').doc(id).update({ deleted: true })
             }
             );
         } finally {
@@ -491,6 +522,12 @@ const Gestao = () => {
             })
         }
     };
+
+    const handleSelectPlace = (value) => {
+        console.log(value);
+        const place = places.find(place => place?.id === value);
+        setLocation({ lat: place?.lat, lng: place?.lng });
+    }
 
     return (
         <div className="flex flex-col gap-4 p-4 bg-white rounded-lg shadow-lg">
@@ -537,7 +574,7 @@ const Gestao = () => {
                             item.id.toString().includes(idFilter)
                     )}
                     columns={columns}
-                    pagination={{ pageSize: 5 }}
+                    pagination={{ pageSizeOptions: ['10', '20', '50', '100'], showSizeChanger: true }}
                     rowSelection={rowSelection}
                     rowKey={record => record.id}
                     footer={() => (
@@ -602,7 +639,6 @@ const Gestao = () => {
                                 <Form.Item
                                     name="organizer"
                                     label="Organizador do Evento"
-                                    rules={[{ required: true, message: "Please select the organizer" }]}
                                 >
                                     <Select placeholder="Selecione o organizador do evento">
                                         {organizers.map(organizer => (
@@ -622,28 +658,15 @@ const Gestao = () => {
                             </Col>
                         </Row>
                         <Row gutter={16}>
-                            <Col span={12}>
+                            <Col span={24}>
                                 <Form.Item
                                     name="category"
                                     label="Categoria do Evento"
                                     rules={[{ required: true, message: "Please select the category" }]}
                                 >
-                                    <Select placeholder="Selecione a categoria do evento">
+                                    <Select mode="multiple" placeholder="Selecione a categoria do evento">
                                         {categories.map(category => (
                                             <Option value={category.id}>{category.name}</Option>
-                                        ))}
-                                    </Select>
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item
-                                    name="type"
-                                    label="Tipo de Evento"
-                                    rules={[{ required: true, message: "Please select the type" }]}
-                                >
-                                    <Select placeholder="Selecione o tipo do evento">
-                                        {types.map(type => (
-                                            <Option value={type.id}>{type.name}</Option>
                                         ))}
                                     </Select>
                                 </Form.Item>
@@ -674,17 +697,41 @@ const Gestao = () => {
                                     label="Local do Evento"
                                     rules={[{ required: true, message: "Please enter the location" }]}
                                 >
-                                    <Input />
+                                    <Select
+                                        showSearch
+                                        placeholder="Selecione o local do evento"
+                                        filterOption={(input, option) =>
+                                            option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                        }
+                                        onChange={handleSelectPlace}
+                                    >
+                                        {places.map(place => (
+                                            <Option value={place.id}>{place.name}</Option>
+                                        ))}
+                                    </Select>
                                 </Form.Item>
                             </Col>
                         </Row>
-                        <Form.Item
-                            name="description"
-                            label="Descrição do Evento"
-                            rules={[{ required: true, message: "Please enter the description" }]}
-                        >
-                            <Input.TextArea />
-                        </Form.Item>
+                        <Row gutter={16}>
+                            <Col span={12}>
+                                <Form.Item
+                                    name="description"
+                                    label="Descrição do Evento em Português"
+                                    rules={[{ required: true, message: "Please enter the description" }]}
+                                >
+                                    <Input.TextArea />
+                                </Form.Item>
+                            </Col>
+                            <Col span={12}>
+                                <Form.Item
+                                    name="description_en"
+                                    label="Descrição do Evento em Inglês"
+                                    rules={[{ required: true, message: "Please enter the description" }]}
+                                >
+                                    <Input.TextArea />
+                                </Form.Item>
+                            </Col>
+                        </Row>
                         <Form.Item
                             name="hashtags"
                             label="Hashtags"
@@ -736,7 +783,6 @@ const Gestao = () => {
                             <Form.Item
                                 name="organizer"
                                 label="Organizador do Evento"
-                                rules={[{ required: true, message: "Please select the organizer" }]}
                             >
                                 <Select placeholder="Selecione o organizador do evento">
                                     {organizers.map(organizer => (
@@ -756,28 +802,15 @@ const Gestao = () => {
                         </Col>
                     </Row>
                     <Row gutter={16}>
-                        <Col span={12}>
+                        <Col span={24}>
                             <Form.Item
                                 name="category"
                                 label="Categoria do Evento"
                                 rules={[{ required: true, message: "Please select the category" }]}
                             >
-                                <Select placeholder="Selecione a categoria do evento">
+                                <Select mode='multiple' placeholder="Selecione a categoria do evento">
                                     {categories.map(category => (
                                         <Option value={category.id}>{category.name}</Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={12}>
-                            <Form.Item
-                                name="type"
-                                label="Tipo de Evento"
-                                rules={[{ required: true, message: "Please select the type" }]}
-                            >
-                                <Select placeholder="Selecione o tipo do evento">
-                                    {types.map(type => (
-                                        <Option value={type.id}>{type.name}</Option>
                                     ))}
                                 </Select>
                             </Form.Item>
@@ -808,17 +841,41 @@ const Gestao = () => {
                                 label="Local do Evento"
                                 rules={[{ required: true, message: "Please enter the location" }]}
                             >
-                                <Input />
+                                <Select
+                                    showSearch
+                                    placeholder="Selecione o local do evento"
+                                    filterOption={(input, option) =>
+                                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                    }
+                                    onChange={handleSelectPlace}
+                                >
+                                    {places.map(place => (
+                                        <Option value={place.id}>{place.name}</Option>
+                                    ))}
+                                </Select>
                             </Form.Item>
                         </Col>
                     </Row>
-                    <Form.Item
-                        name="description"
-                        label="Descrição do Evento"
-                        rules={[{ required: true, message: "Please enter the description" }]}
-                    >
-                        <Input.TextArea />
-                    </Form.Item>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item
+                                name="description"
+                                label="Descrição do Evento em Português"
+                                rules={[{ required: true, message: "Please enter the description" }]}
+                            >
+                                <Input.TextArea />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item
+                                name="description_en"
+                                label="Descrição do Evento em Inglês"
+                                rules={[{ required: true, message: "Please enter the description" }]}
+                            >
+                                <Input.TextArea />
+                            </Form.Item>
+                        </Col>
+                    </Row>
                     <Form.Item
                         name="hashtags"
                         label="Hashtags"

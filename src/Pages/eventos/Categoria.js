@@ -79,6 +79,7 @@ const Categoria = () => {
     };
 
     const showEditDialog = (record) => () => {
+        formEdit.resetFields();
         setOpenEdit(true);
         formEdit.setFieldsValue(record);
     };
@@ -87,6 +88,7 @@ const Categoria = () => {
         setConfirmLoading(true);
         firebase.firestore().collection("categoria").add({
             name: form.getFieldValue('name'),
+            name_en: form.getFieldValue('name_en'),
             members: 0
         }).then(() => {
             notification.success({
@@ -108,7 +110,8 @@ const Categoria = () => {
     const handleEditOk = (e) => {
         setConfirmLoading(true);
         firebase.firestore().collection("categoria").doc(formEdit.getFieldValue('id')).update({
-            name: formEdit.getFieldValue('name')
+            name: formEdit.getFieldValue('name'),
+            name_en: formEdit.getFieldValue('name_en')
         }).then(() => {
             notification.success({
                 message: 'Success',
@@ -269,6 +272,13 @@ const Categoria = () => {
                     <Form.Item
                         name="name"
                         label="Nome da Categoria"
+                        rules={[{ required: true, message: "Por favor insira o nome da categoria" }]}
+                    >
+                        <Input />
+                    </Form.Item>
+                    <Form.Item
+                        name="name_en"
+                        label="Nome em Inglês"
                         rules={[{ required: true, message: "Please enter the category name" }]}
                     >
                         <Input />
@@ -293,6 +303,13 @@ const Categoria = () => {
                     <Form.Item
                         name="name"
                         label="Nome"
+                        rules={[{ required: true, message: "Please enter the category name" }]}
+                    >
+                        <Input />
+                    </Form.Item>
+                    <Form.Item
+                        name="name_en"
+                        label="Nome em Inglês"
                         rules={[{ required: true, message: "Please enter the category name" }]}
                     >
                         <Input />

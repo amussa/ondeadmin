@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Icon, Skeleton, Input, Select, Table, Divider, Button, Space, Modal, Form, notification } from "antd";
+import { Icon, Skeleton, Input, Select, Table, Divider, Button, Space, Modal, Form, notification, Row, Col } from "antd";
 import {
     ArrowLeftOutlined,
     EditOutlined,
@@ -84,6 +84,7 @@ const Organizadores = () => {
     };
 
     const showEditDialog = (record) => () => {
+        formEdit.resetFields();
         setOpenEdit(true);
         formEdit.setFieldsValue(record);
     };
@@ -100,6 +101,7 @@ const Organizadores = () => {
                 email: form.getFieldValue('email'),
                 address: form.getFieldValue('address'),
                 description: form.getFieldValue('description'),
+                description_en: form.getFieldValue('description_en'),
             });
             notification.success({
                 message: 'Success',
@@ -128,6 +130,7 @@ const Organizadores = () => {
             email: formEdit.getFieldValue('email'),
             address: formEdit.getFieldValue('address'),
             description: formEdit.getFieldValue('description'),
+            description_en: formEdit.getFieldValue('description_en'),
         };
 
         try {
@@ -310,35 +313,41 @@ const Organizadores = () => {
                     >
                         <Input />
                     </Form.Item>
-                    <Form.Item
-                        name="phone"
-                        label="Telefone"
-                        rules={[{ required: true, message: "Please enter the phone number" }]}
-                    >
-                        <PhoneInput
-                            international
-                            defaultCountry="MZ"
-                            style={{
-                                width: '100%',
-                                height: '32px',
-                                padding: '4px 11px',
-                                fontSize: '14px',
-                                lineHeight: '1.5715',
-                                color: 'rgba(0, 0, 0, 0.65)',
-                                backgroundColor: '#fff',
-                                border: '1px solid #d9d9d9',
-                                borderRadius: 6,
-                                transition: 'all .3s',
-                            }}
-                        />
-                    </Form.Item>
-                    <Form.Item
-                        name="email"
-                        label="Email"
-                        rules={[{ required: true, message: "Please enter the email" }]}
-                    >
-                        <Input />
-                    </Form.Item>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item
+                                name="phone"
+                                label="Telefone"
+                                rules={[{ required: true, message: "Please enter the phone number" }]}
+                            >
+                                <PhoneInput
+                                    international
+                                    defaultCountry="MZ"
+                                    style={{
+                                        width: '100%',
+                                        height: '32px',
+                                        padding: '4px 11px',
+                                        fontSize: '14px',
+                                        lineHeight: '1.5715',
+                                        color: 'rgba(0, 0, 0, 0.65)',
+                                        backgroundColor: '#fff',
+                                        border: '1px solid #d9d9d9',
+                                        borderRadius: 6,
+                                        transition: 'all .3s',
+                                    }}
+                                />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item
+                                name="email"
+                                label="Email"
+                                rules={[{ required: true, message: "Please enter the email" }]}
+                            >
+                                <Input />
+                            </Form.Item>
+                        </Col>
+                    </Row>
                     <Form.Item
                         name="address"
                         label="Endereço"
@@ -349,6 +358,13 @@ const Organizadores = () => {
                     <Form.Item
                         name="description"
                         label="Descrição do Organizador"
+                        rules={[{ required: true, message: "Please enter the description" }]}
+                    >
+                        <Input.TextArea />
+                    </Form.Item>
+                    <Form.Item
+                        name="description_en"
+                        label="Descrição em Inglês"
                         rules={[{ required: true, message: "Please enter the description" }]}
                     >
                         <Input.TextArea />
@@ -378,35 +394,41 @@ const Organizadores = () => {
                     >
                         <Input />
                     </Form.Item>
-                    <Form.Item
-                        name="phone"
-                        label="Telefone"
-                        rules={[{ required: true, message: "Please enter the phone number" }]}
-                    >
-                        <PhoneInput
-                            international
-                            defaultCountry="MZ"
-                            style={{
-                                width: '100%',
-                                height: '32px',
-                                padding: '4px 11px',
-                                fontSize: '14px',
-                                lineHeight: '1.5715',
-                                color: 'rgba(0, 0, 0, 0.65)',
-                                backgroundColor: '#fff',
-                                border: '1px solid #d9d9d9',
-                                borderRadius: 6,
-                                transition: 'all .3s',
-                            }}
-                        />
-                    </Form.Item>
-                    <Form.Item
-                        name="email"
-                        label="Email"
-                        rules={[{ required: true, message: "Please enter the email" }]}
-                    >
-                        <Input />
-                    </Form.Item>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item
+                                name="phone"
+                                label="Telefone"
+                                rules={[{ required: true, message: "Please enter the phone number" }]}
+                            >
+                                <PhoneInput
+                                    international
+                                    defaultCountry="MZ"
+                                    style={{
+                                        width: '100%',
+                                        height: '32px',
+                                        padding: '4px 11px',
+                                        fontSize: '14px',
+                                        lineHeight: '1.5715',
+                                        color: 'rgba(0, 0, 0, 0.65)',
+                                        backgroundColor: '#fff',
+                                        border: '1px solid #d9d9d9',
+                                        borderRadius: 6,
+                                        transition: 'all .3s',
+                                    }}
+                                />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item
+                                name="email"
+                                label="Email"
+                                rules={[{ required: true, message: "Please enter the email" }]}
+                            >
+                                <Input />
+                            </Form.Item>
+                        </Col>
+                    </Row>
                     <Form.Item
                         name="address"
                         label="Endereço"
@@ -417,6 +439,13 @@ const Organizadores = () => {
                     <Form.Item
                         name="description"
                         label="Descrição do Organizador"
+                        rules={[{ required: true, message: "Please enter the description" }]}
+                    >
+                        <Input.TextArea />
+                    </Form.Item>
+                    <Form.Item
+                        name="description_en"
+                        label="Descrição em Inglês"
                         rules={[{ required: true, message: "Please enter the description" }]}
                     >
                         <Input.TextArea />

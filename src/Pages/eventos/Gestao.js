@@ -142,7 +142,7 @@ const Gestao = () => {
     const showEditDialog = (record) => () => {
         formEdit.resetFields();
         setOpenEdit(true);
-        setLocation({ lat: record.lat, lng: record.lng });
+        setLocation({ lat: record.lat, lng: record.lng, location: record.locationName });
         formEdit.setFieldValue('id', record.id);
         formEdit.setFieldValue('name', record.name);
         formEdit.setFieldValue('category', Array.isArray(record?.category) ? record?.category?.map(cat => cat.id) : [record?.category?.id]);
@@ -153,7 +153,7 @@ const Gestao = () => {
             time = moment(time, 'HH:mm');
         }
         formEdit.setFieldValue('time', time);
-        formEdit.setFieldValue('location', record.location);
+        formEdit.setFieldValue('location', places.filter(place => place.name === record.location)[0].id);
         formEdit.setFieldValue('description', record.description);
         formEdit.setFieldValue('description_en', record.description_en);
         formEdit.setFieldValue('hashtags', record.hashtags);
@@ -217,6 +217,7 @@ const Gestao = () => {
                 hashtags: form.getFieldValue('hashtags'),
                 lat: location.lat,
                 lng: location.lng,
+                locationName: location.location,
                 coverImage: url,
                 views: 0,
                 categoria: 'novo'
@@ -301,6 +302,7 @@ const Gestao = () => {
                 hashtags: formEdit.getFieldValue('hashtags'),
                 lat: location.lat,
                 lng: location.lng,
+                locationName: location.location,
                 coverImage: url
             };
 
@@ -526,7 +528,7 @@ const Gestao = () => {
     const handleSelectPlace = (value) => {
         console.log(value);
         const place = places.find(place => place?.id === value);
-        setLocation({ lat: place?.lat, lng: place?.lng });
+        setLocation({ lat: place?.lat, lng: place?.lng , location: place?.location});
     }
 
     return (

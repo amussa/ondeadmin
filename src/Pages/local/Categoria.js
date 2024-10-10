@@ -161,6 +161,7 @@ const CategoriaLocal = () => {
         {
             title: "Nome",
             dataIndex: "name",
+            sorter : (a, b) => a.name.localeCompare(b.name),
         },
         {
             title: "Actions",

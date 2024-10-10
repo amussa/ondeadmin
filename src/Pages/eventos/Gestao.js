@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Upload, Icon, Skeleton, Input, Select, Table, Divider, Button, Space, Modal, Form, notification, Col, Row, DatePicker, TimePicker, Typography } from "antd";
+import { Upload, Icon, Skeleton, Input, Select, Table, Divider, Button, Space, Modal, Form, notification, Col, Row, DatePicker, TimePicker, Typography, Radio } from "antd";
 import {
     ArrowLeftOutlined,
     EditOutlined,
@@ -132,14 +132,19 @@ const Gestao = () => {
         setOpenDelete(false);
     };
 
+    const [recurring, setRecurring] = useState(false);
+
     const showModalAdd = () => {
         setConfirmLoading(false);
         setLoadScript(true);
         form.resetFields();
+        form.setFieldsValue({ isRecurring: false });
+        setRecurring(false);
         setOpenAdd(true);
     };
 
     const showEditDialog = (record) => () => {
+        console.log(record);
         formEdit.resetFields();
         setOpenEdit(true);
         setLocation({ lat: record.lat, lng: record.lng, location: record.locationName });
@@ -205,7 +210,7 @@ const Gestao = () => {
 
             const organizerData = { id: organizerDoc.id, ...organizerDoc.data() };
 
-            const newEvent = {
+            let newEvent = {
                 name: form.getFieldValue('name'),
                 category: categoriesData,
                 organizer: organizerData,
@@ -223,23 +228,49 @@ const Gestao = () => {
                 categoria: 'novo'
             };
 
-            db.collection('evento').add(newEvent)
-                .then((docRef) => {
-                    notification.success({
-                        message: 'Success',
-                        description: 'Evento criado com sucesso'
-                    })
-                    fetchData();
+            let repeat = form.getFieldValue('isRecurring');
+            if (repeat && parseInt(form.getFieldValue('frequency')) > 1) {
+                for (let i = 1; i <= parseInt(form.getFieldValue('frequency')); i++) {
+                    newEvent.data = moment(newEvent.data).add(7, 'days').toDate();
+                    db.collection('evento').add(newEvent)
+                        .then((docRef) => {
+                            fetchData();
+                        })
+                        .catch((error) => {
+                            notification.error({
+                                message: 'Error',
+                                description: 'Erro ao criar o evento'
+                            })
+                        }).finally(() => {
+                            setOpenAdd(false);
+                            setConfirmLoading(false);
+                        });
+                }
+                notification.success({
+                    message: 'Success',
+                    description: 'Eventos criados com sucesso'
                 })
-                .catch((error) => {
-                    notification.error({
-                        message: 'Error',
-                        description: 'Erro ao criar o evento'
+            } else {
+                db.collection('evento').add(newEvent)
+                    .then((docRef) => {
+                        notification.success({
+                            message: 'Success',
+                            description: 'Evento criado com sucesso'
+                        })
+                        fetchData();
                     })
-                }).finally(() => {
-                    setOpenAdd(false);
-                    setConfirmLoading(false);
-                });
+                    .catch((error) => {
+                        notification.error({
+                            message: 'Error',
+                            description: 'Erro ao criar o evento'
+                        })
+                    }).finally(() => {
+                        setOpenAdd(false);
+                        setConfirmLoading(false);
+                    });
+            }
+
+
         });
 
     };
@@ -284,8 +315,8 @@ const Gestao = () => {
         Promise.all([
             db.collection('categoria').where(firebase.firestore.FieldPath.documentId(), 'in', categoryIDs).get(),
             db.collection('organizador').doc(organizerID).get(),
-        ]).then(([categoryDoc,organizerDoc]) => {
-            
+        ]).then(([categoryDoc, organizerDoc]) => {
+
 
             const organizerData = { id: organizerDoc.id, ...organizerDoc.data() };
             const categoriesData = categoryDoc.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -528,7 +559,7 @@ const Gestao = () => {
     const handleSelectPlace = (value) => {
         console.log(value);
         const place = places.find(place => place?.id === value);
-        setLocation({ lat: place?.lat, lng: place?.lng , location: place?.location});
+        setLocation({ lat: place?.lat, lng: place?.lng, location: place?.location });
     }
 
     return (
@@ -675,7 +706,7 @@ const Gestao = () => {
                             </Col>
                         </Row>
                         <Row gutter={16}>
-                            <Col span={8}>
+                            <Col span={6}>
                                 <Form.Item
                                     name="data"
                                     label="Data do Evento"
@@ -684,7 +715,7 @@ const Gestao = () => {
                                     <DatePicker style={{ width: '100%' }} placeholder="Selecione a Data" format={'DD/MM/YYYY'} />
                                 </Form.Item>
                             </Col>
-                            <Col span={8}>
+                            <Col span={6}>
                                 <Form.Item
                                     name="time"
                                     label="Hora do Evento"
@@ -693,7 +724,34 @@ const Gestao = () => {
                                     <TimePicker format="HH:mm" style={{ width: '100%' }} placeholder="Selecione a Hora" />
                                 </Form.Item>
                             </Col>
-                            <Col span={8}>
+                            <Col span={6}>
+                                <Form.Item
+                                    name="isRecurring"
+                                    label="Evento recorrente?"
+                                    rules={[{ required: true, message: "Por favor, selecione uma opção" }]}
+                                >
+                                    <Radio.Group onChange={(e) => setRecurring(e.target.value)}>
+                                        <Radio value={true}>Sim</Radio>
+                                        <Radio value={false}>Não</Radio>
+                                    </Radio.Group>
+                                </Form.Item>
+                            </Col>
+                            <Col span={6}>
+                                <Form.Item
+                                    name="frequency"
+                                    label="Frequência"
+                                    rules={[{
+                                        required: recurring,
+                                        message: "Please enter the frequency"
+                                    }]}
+                                >
+                                    <Input type="number" disabled={!recurring} />
+                                </Form.Item>
+                            </Col>
+
+                        </Row>
+                        <Row gutter={16}>
+                            <Col span={24}>
                                 <Form.Item
                                     name="location"
                                     label="Local do Evento"

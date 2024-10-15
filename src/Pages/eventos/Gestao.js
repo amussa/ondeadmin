@@ -737,7 +737,7 @@ const Gestao = () => {
                                     rules={[{ required: true, message: "Please select the time" }]}
                                     className="tp"
                                 >
-                                    <TimePicker popupClassName="tp" format="HH:mm" style={{ width: '100%' }} placeholder="Selecione a Hora" />
+                                    <TimePicker className="tp" format="HH:mm" style={{ width: '100%' }} placeholder="Selecione a Hora" />
                                 </Form.Item>
                             </Col>
                             <Col span={6}>

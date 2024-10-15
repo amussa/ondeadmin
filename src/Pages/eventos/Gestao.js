@@ -13,6 +13,7 @@ import { GoogleMap, Marker, LoadScript, useJsApiLoader } from "@react-google-map
 import { UploadOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import imageCompression from 'browser-image-compression';
+import '../../Components/css/explore.css'
 
 const { Option } = Select;
 
@@ -60,6 +61,8 @@ const Gestao = () => {
                 .get();
             const disciplines = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             let notDeleted = disciplines.filter((item) => !item.deleted);
+            //order by name
+            notDeleted.sort((a, b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
             setListGrades(notDeleted);
         } finally {
             setIsLoading(false);
@@ -76,6 +79,8 @@ const Gestao = () => {
         } else {
             let disciplines = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             let notDeleted = disciplines.filter((item) => !item.deleted);
+            //order by name
+            notDeleted.sort((a, b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
             setPlaces(notDeleted);
         }
     }
@@ -416,14 +421,15 @@ const Gestao = () => {
 
         },
         {
-            title: "Data e Hora",
+            title: "Data",
             dataIndex: "data",
             width: 200,
             render: (data, record) => (
                 <div>
                     <div>{moment(record.data.toDate()).format('DD/MM/YYYY')} {record.time}</div>
                 </div>
-            )
+            ),
+            sorter: (a, b) => moment(a.data.toDate()).unix() - moment(b.data.toDate()).unix(),
         },
         {
             title: "Visualizações",
@@ -672,6 +678,7 @@ const Gestao = () => {
                                 <Form.Item
                                     name="organizer"
                                     label="Organizador do Evento"
+                                    required={[{ required: true, message: "Please select the organizer" }]}
                                 >
                                     <Select placeholder="Selecione o organizador do evento">
                                         {organizers.map(organizer => (
@@ -712,7 +719,15 @@ const Gestao = () => {
                                     label="Data do Evento"
                                     rules={[{ required: true, message: "Please select the data" }]}
                                 >
-                                    <DatePicker style={{ width: '100%' }} placeholder="Selecione a Data" format={'DD/MM/YYYY'} />
+                                    <DatePicker 
+                                    style={
+                                        { width: '100%' }
+                                    }
+                                    
+                                    placeholder="Selecione a Data" 
+                                    format={'DD/MM/YYYY'} 
+                                    
+                                    />
                                 </Form.Item>
                             </Col>
                             <Col span={6}>
@@ -720,8 +735,9 @@ const Gestao = () => {
                                     name="time"
                                     label="Hora do Evento"
                                     rules={[{ required: true, message: "Please select the time" }]}
+                                    className="tp"
                                 >
-                                    <TimePicker format="HH:mm" style={{ width: '100%' }} placeholder="Selecione a Hora" />
+                                    <TimePicker popupClassName="tp" format="HH:mm" style={{ width: '100%' }} placeholder="Selecione a Hora" />
                                 </Form.Item>
                             </Col>
                             <Col span={6}>
@@ -743,9 +759,20 @@ const Gestao = () => {
                                     rules={[{
                                         required: recurring,
                                         message: "Please enter the frequency"
-                                    }]}
+                                    },
+                                    //verify if the value is between 1 and 52
+                                    ({ getFieldValue }) => ({
+                                        validator(_, value) {
+                                            if (recurring && value >= 1 && value <= 52) {
+                                                return Promise.resolve();
+                                            }
+                                            return Promise.reject(new Error('The frequency must be between 1 and 52'));
+                                        },
+                                    }),
+                                    ]}
+
                                 >
-                                    <Input type="number" disabled={!recurring} />
+                                    <Input type="number" disabled={!recurring} min={1} max={52} />
                                 </Form.Item>
                             </Col>
 
@@ -843,6 +870,7 @@ const Gestao = () => {
                             <Form.Item
                                 name="organizer"
                                 label="Organizador do Evento"
+                                required={[{ required: true, message: "Please select the organizer" }]}
                             >
                                 <Select placeholder="Selecione o organizador do evento">
                                     {organizers.map(organizer => (
@@ -892,7 +920,7 @@ const Gestao = () => {
                                 label="Hora do Evento"
                                 rules={[{ required: true, message: "Please select the time" }]}
                             >
-                                <TimePicker format="HH:mm" style={{ width: '100%' }} placeholder="Selecione a Hora" />
+                                <TimePicker popupClassName="tp" format="HH:mm" style={{ width: '100%' }} placeholder="Selecione a Hora" />
                             </Form.Item>
                         </Col>
                         <Col span={8}>

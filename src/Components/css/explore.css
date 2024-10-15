@@ -1,0 +1,4 @@
+.tp :where(.css-dev-only-do-not-override-pr0fja).ant-btn.ant-btn-sm {
+    background-color: rgb(65, 65, 204);
+    color: white;
+}

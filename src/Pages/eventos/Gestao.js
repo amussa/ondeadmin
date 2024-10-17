@@ -88,16 +88,18 @@ const Gestao = () => {
     const fetchOrganizers = async () => {
         const db = firebase.firestore();
         const data = await db.collection("organizador").get();
-        const organizers = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-        console.log(organizers);
+        let organizers = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+        //order ascending
+        organizers.sort((a, b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
         setOrganizers(organizers);
     };
 
     const fetchCategories = async () => {
         const db = firebase.firestore();
         const data = await db.collection("categoria").get();
-        const categories = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-        console.log(categories);
+        let categories = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+        //order ascending
+        categories.sort((a, b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
         setCategories(categories);
     };
 
@@ -140,6 +142,7 @@ const Gestao = () => {
     const [recurring, setRecurring] = useState(false);
 
     const showModalAdd = () => {
+        setRecurring(false);
         setConfirmLoading(false);
         setLoadScript(true);
         form.resetFields();
@@ -755,20 +758,11 @@ const Gestao = () => {
                             <Col span={6}>
                                 <Form.Item
                                     name="frequency"
-                                    label="Frequência"
+                                    label="Repetições(semanas)"
                                     rules={[{
                                         required: recurring,
                                         message: "Please enter the frequency"
-                                    },
-                                    //verify if the value is between 1 and 52
-                                    ({ getFieldValue }) => ({
-                                        validator(_, value) {
-                                            if (recurring && value >= 1 && value <= 52) {
-                                                return Promise.resolve();
-                                            }
-                                            return Promise.reject(new Error('The frequency must be between 1 and 52'));
-                                        },
-                                    }),
+                                    }
                                     ]}
 
                                 >

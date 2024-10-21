@@ -72,7 +72,7 @@ const GestaoLocal = () => {
         const db = firebase.firestore();
         const data = await db.collection("categoriaLocal").get();
         const categories = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-        console.log(categories);
+        categories.sort((a, b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
         setCategories(categories);
     };
 
@@ -636,6 +636,9 @@ const GestaoLocal = () => {
                                     <Select
                                         placeholder="Selecione a categoria do Local"
                                         mode="multiple"
+                                        filterOption={(input, option) =>
+                                            option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                        }
                                     >
                                         {categories.map(category => (
                                             <Option value={category.id}>{category.name}</Option>
@@ -748,7 +751,11 @@ const GestaoLocal = () => {
                             >
                                 <Select
                                     mode="multiple"
-                                    placeholder="Selecione a categoria do Local">
+                                    placeholder="Selecione a categoria do Local"
+                                    filterOption={(input, option) =>
+                                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                    }
+                                    >
                                     {categories.map(category => (
                                         <Option value={category.id}>{category.name}</Option>
                                     ))}

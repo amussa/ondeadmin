@@ -45,6 +45,7 @@ const CategoriaLocal = () => {
                 data.forEach((doc) => {
                     arrayData.push({ ...doc.data(), id: doc.id });
                 });
+                arrayData.sort((a, b) => a.name.localeCompare(b.name));
                 setListGrades(arrayData);
             }
         } finally {
@@ -242,7 +243,11 @@ const CategoriaLocal = () => {
                 </div>
                 <Table
                     size="small"
-                    dataSource={listGrades}
+                    dataSource={listGrades.filter(
+                        (item) =>
+                            item.name.toLowerCase().includes(nameFilter.toLowerCase()) &&
+                            item.id.toString().includes(idFilter)
+                    )}
                     columns={columns}
                     loading={isLoading}
                 />

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { Upload, Icon, Skeleton, Input, Select, Table, Divider, Button, Space, Modal, Form, notification, Col, Row, DatePicker, TimePicker, Typography, Radio } from "antd";
+import { Upload, Icon, Skeleton, Input, Select, Table, Divider, Button, Space, Modal, Form, notification, Col, Row, DatePicker, TimePicker, Typography, Radio, Tag } from "antd";
 import {
     ArrowLeftOutlined,
     EditOutlined,
@@ -60,8 +60,8 @@ const Gestao = () => {
             const data = await db.collection("evento")
                 .get();
             const disciplines = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
-            let notDeleted = disciplines.filter((item) => !item.deleted);
             //order by name
+            let notDeleted = disciplines
             notDeleted.sort((a, b) => (a.name > b.name) ? 1 : ((b.name > a.name) ? -1 : 0));
             setListGrades(notDeleted);
         } finally {
@@ -342,7 +342,8 @@ const Gestao = () => {
                 lat: location.lat,
                 lng: location.lng,
                 locationName: location.location,
-                coverImage: url
+                coverImage: url,
+                deleted: false
             };
 
             db.collection('evento').doc(formEdit.getFieldValue('id')).update(newEvent)
@@ -446,6 +447,16 @@ const Gestao = () => {
             render: (destaque) => (
                 <div>
                     <div>{destaque == true ? 'Sim' : 'Não'}</div>
+                </div>
+            )
+        },
+        {
+            title: "Status",
+            dataIndex: "deleted",
+            width: 150,
+            render: (record, index) => (
+                <div>
+                    <div><Tag color={record ? 'red' : 'green'}>{record ? 'Inactive' : 'Active'}</Tag></div>
                 </div>
             )
         },
@@ -683,7 +694,12 @@ const Gestao = () => {
                                     label="Organizador do Evento"
                                     required={[{ required: true, message: "Please select the organizer" }]}
                                 >
-                                    <Select placeholder="Selecione o organizador do evento">
+                                    <Select
+                                        mode="multiple"
+                                        placeholder="Selecione o organizador do evento"
+                                        filterOption={(input, option) =>
+                                            option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                        } >
                                         {organizers.map(organizer => (
                                             <Option value={organizer.id}>{organizer.name}</Option>
                                         ))}
@@ -707,7 +723,13 @@ const Gestao = () => {
                                     label="Categoria do Evento"
                                     rules={[{ required: true, message: "Please select the category" }]}
                                 >
-                                    <Select mode="multiple" placeholder="Selecione a categoria do evento">
+                                    <Select
+                                        mode="multiple"
+                                        placeholder="Selecione a categoria do evento"
+                                        filterOption={(input, option) =>
+                                            option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                        }
+                                    >
                                         {categories.map(category => (
                                             <Option value={category.id}>{category.name}</Option>
                                         ))}
@@ -722,14 +744,14 @@ const Gestao = () => {
                                     label="Data do Evento"
                                     rules={[{ required: true, message: "Please select the data" }]}
                                 >
-                                    <DatePicker 
-                                    style={
-                                        { width: '100%' }
-                                    }
-                                    
-                                    placeholder="Selecione a Data" 
-                                    format={'DD/MM/YYYY'} 
-                                    
+                                    <DatePicker
+                                        style={
+                                            { width: '100%' }
+                                        }
+
+                                        placeholder="Selecione a Data"
+                                        format={'DD/MM/YYYY'}
+
                                     />
                                 </Form.Item>
                             </Col>
@@ -866,7 +888,13 @@ const Gestao = () => {
                                 label="Organizador do Evento"
                                 required={[{ required: true, message: "Please select the organizer" }]}
                             >
-                                <Select placeholder="Selecione o organizador do evento">
+                                <Select 
+                                placeholder="Selecione o organizador do evento"
+                                mode="multiple"
+                                filterOption={(input, option) =>
+                                    option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                }
+                                >
                                     {organizers.map(organizer => (
                                         <Option value={organizer.id}>{organizer.name}</Option>
                                     ))}
@@ -890,7 +918,13 @@ const Gestao = () => {
                                 label="Categoria do Evento"
                                 rules={[{ required: true, message: "Please select the category" }]}
                             >
-                                <Select mode='multiple' placeholder="Selecione a categoria do evento">
+                                <Select
+                                    mode='multiple'
+                                    placeholder="Selecione a categoria do evento"
+                                    filterOption={(input, option) =>
+                                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                    }
+                                >
                                     {categories.map(category => (
                                         <Option value={category.id}>{category.name}</Option>
                                     ))}

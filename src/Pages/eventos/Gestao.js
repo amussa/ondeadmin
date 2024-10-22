@@ -593,7 +593,7 @@ const Gestao = () => {
                 <div className="flex gap-2 items-center mb-4">
                     <div className="flex items-center">
                         <Button onClick={showModalAdd} className="border-purple-600 text-purple-600 cursor-pointer hover:bg-green-200 mr-2">
-                            Adcionar
+                            Adicionar
                         </Button>
                         <Button className="border-purple-600 text-purple-600 cursor-pointer hover:bg-yellow-200 mr-2">
                             Importar
@@ -640,7 +640,7 @@ const Gestao = () => {
                                         onClick={handleDestaques}
                                         className="bg-green-600 text-white"
                                     >
-                                        Adcionar aos Destaques
+                                        Adicionar aos Destaques
                                     </Button>
                                     <Button
                                         onClick={handleRemoveDestaques}
@@ -677,7 +677,7 @@ const Gestao = () => {
             {/* Modal for Add Products */}
             <Modal
                 okButtonProps={{ className: "bg-green-600 text-white-600 cursor-pointer hover:bg-green-200 mr-2" }}
-                title="Adcionar Novo Evento"
+                title="Adicionar Novo Evento"
                 footer={[]}
                 onCancel={handleAddCancel}
                 open={openAdd}

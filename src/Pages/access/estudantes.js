@@ -301,7 +301,7 @@ const Estudantes = () => {
             {/* Modal for Add Products */}
             <Modal
                 okButtonProps={{ className: "bg-green-600 text-white-600 cursor-pointer hover:bg-green-200 mr-2" }}
-                title="Adcionar estudante"
+                title="Adicionar estudante"
                 footer={[]}
                 onCancel={handleAddCancel}
                 open={openAdd}

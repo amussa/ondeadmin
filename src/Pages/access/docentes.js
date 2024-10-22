@@ -256,7 +256,7 @@ const Docente = () => {
                 <div className="flex gap-2 items-center mb-4">
                     <div className="flex items-center">
                         <Button onClick={showModalAdd} className="border-purple-600 text-purple-600 cursor-pointer hover:bg-green-200 mr-2">
-                            Adcionar
+                            Adicionar
                         </Button>
                         <Button className="border-purple-600 text-purple-600 cursor-pointer hover:bg-yellow-200 mr-2">
                             Importar
@@ -307,7 +307,7 @@ const Docente = () => {
             {/* Modal for Add Products */}
             <Modal
                 okButtonProps={{ className: "bg-green-600 text-white-600 cursor-pointer hover:bg-green-200 mr-2" }}
-                title="Adcionar Docente"
+                title="Adicionar Docente"
                 footer={[]}
                 onCancel={handleAddCancel}
                 open={openAdd}

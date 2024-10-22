@@ -14,7 +14,7 @@ import { UploadOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import imageCompression from 'browser-image-compression';
 import { DownloadTableExcel } from 'react-export-table-to-excel';
-
+import PhoneInput from 'react-phone-number-input'
 const { Option } = Select;
 
 const GestaoLocal = () => {
@@ -661,7 +661,22 @@ const GestaoLocal = () => {
                                     label="Contacto"
                                     rules={[{ required: true, message: "Please enter the contact" }]}
                                 >
-                                    <Input />
+                                    <PhoneInput
+                                    international
+                                    defaultCountry="MZ"
+                                    style={{
+                                        width: '100%',
+                                        height: '32px',
+                                        padding: '4px 11px',
+                                        fontSize: '14px',
+                                        lineHeight: '1.5715',
+                                        color: 'rgba(0, 0, 0, 0.65)',
+                                        backgroundColor: '#fff',
+                                        border: '1px solid #d9d9d9',
+                                        borderRadius: 6,
+                                        transition: 'all .3s',
+                                    }}
+                                />
                                 </Form.Item>
                             </Col>
                         </Row>
@@ -777,7 +792,22 @@ const GestaoLocal = () => {
                                 label="Contacto"
                                 rules={[{ required: true, message: "Please enter the contact" }]}
                             >
-                                <Input />
+                                <PhoneInput
+                                    international
+                                    defaultCountry="MZ"
+                                    style={{
+                                        width: '100%',
+                                        height: '32px',
+                                        padding: '4px 11px',
+                                        fontSize: '14px',
+                                        lineHeight: '1.5715',
+                                        color: 'rgba(0, 0, 0, 0.65)',
+                                        backgroundColor: '#fff',
+                                        border: '1px solid #d9d9d9',
+                                        borderRadius: 6,
+                                        transition: 'all .3s',
+                                    }}
+                                />
                             </Form.Item>
                         </Col>
                     </Row>

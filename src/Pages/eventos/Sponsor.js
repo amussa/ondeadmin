@@ -26,7 +26,7 @@ const Sponsor = () => {
     const [openEdit, setOpenEdit] = useState(false);
     const [openDelete, setOpenDelete] = useState(false);
     const [confirmLoading, setConfirmLoading] = useState(false);
-    const [modalDeleteText, setModalDeleteText] = useState('Desenha mesmo deletar esta categoria?');
+    const [modalDeleteText, setModalDeleteText] = useState('Desenha mesmo deletar este patrocinador?');
     const [categories, setCategories] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -138,7 +138,7 @@ const Sponsor = () => {
             }).then(() => {
                 notification.success({
                     message: 'Success',
-                    description: 'Categoria adicionada com sucesso'
+                    description: 'Patrocinador adicionado com sucesso'
                 })
                 fetchData();
             }
@@ -148,7 +148,7 @@ const Sponsor = () => {
             console.log(error);
             notification.error({
                 message: 'Error',
-                description: 'Erro ao adicionar a categoria'
+                description: 'Erro ao adicionar o patrocinador'
             })
         } finally {
             setOpenAdd(false);
@@ -299,7 +299,7 @@ const Sponsor = () => {
             {/* Modal for Delete Products */}
             <Modal
                 okButtonProps={{ danger: true }}
-                title="Deletar Categoria"
+                title="Deletar Patrocinador"
                 open={openDelete}
                 onOk={handleDeleteOk}
                 confirmLoading={confirmLoading}
@@ -321,7 +321,7 @@ const Sponsor = () => {
                 <Form form={form} onFinish={handleAddOk} layout="vertical">
                     <Form.Item
                         name="name"
-                        label="Nome da Patrocinador"
+                        label="Nome do Patrocinador"
                         rules={[{ required: true, message: "Por favor insira o nome do patrocinador" }]}
                     >
                         <Input />
@@ -331,7 +331,7 @@ const Sponsor = () => {
                         label="Logo do Patrocinador"
                         valuePropName="fileList"
                         getValueFromEvent={normFile}
-                        rules={[{ required: true, message: "Por favor insira a imagem do patrocinador" }]}
+                        rules={[{ required: true, message: "Por favor insira o logo do patrocinador" }]}
                     >
                         <Upload name="logo" listType="picture" maxCount={1} beforeUpload={() => false}>
                             <Button icon={<UploadOutlined />}>Clique para selecionar a imagem</Button>
@@ -380,17 +380,17 @@ const Sponsor = () => {
                 <Form form={formEdit} layout="vertical" onFinish={handleEditOk}>
                     <Form.Item
                         name="name"
-                        label="Nome da Patrocinador"
+                        label="Nome do Patrocinador"
                         rules={[{ required: true, message: "Por favor insira o nome do patrocinador" }]}
                     >
                         <Input />
                     </Form.Item>
                     <Form.Item
                         name="coverImage"
-                        label="Imagem de Capa"
+                        label="Logo"
                         valuePropName="fileList"
                         getValueFromEvent={normFile}
-                        rules={[{ required: true, message: "Por favor insira a imagem do patrocinador" }]}
+                        rules={[{ required: true, message: "Por favor insira o Logo do patrocinador" }]}
                     >
                         <Upload name="logo" listType="picture" maxCount={1} beforeUpload={() => false}>
                             <Button icon={<UploadOutlined />}>Clique para selecionar a imagem</Button>

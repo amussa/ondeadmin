@@ -4,13 +4,8 @@ import { Card } from "antd";
 import {
   AppstoreAddOutlined,
   TeamOutlined,
-  PlusOutlined,
-  MinusOutlined,
-  PieChartOutlined,
-  BookOutlined,
-  AppstoreOutlined,
-  UnorderedListOutlined,
-  CalendarOutlined
+  CalendarOutlined,
+  ShareAltOutlined
 } from "@ant-design/icons";
 
 const { Meta } = Card;
@@ -50,6 +45,17 @@ const MenuTutoria = () => {
           >
             <Meta
               title={<div className="text-center">Categorias de Eventos</div>}
+            />
+          </Card>
+        </Link>
+        <Link to="/eventos/sponsor">
+          <Card
+            hoverable
+            className="bg-red-100"
+            cover={<div className="text-center p-4"><ShareAltOutlined style={{ fontSize: '48px' }} /></div>}
+          >
+            <Meta
+              title={<div className="text-center">Patrocinadores</div>}
             />
           </Card>
         </Link>

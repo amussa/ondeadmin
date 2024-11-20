@@ -30,6 +30,7 @@ import MenuLocal from './Pages/local';
 import GestaoLocal from './Pages/local/Gestao';
 import CategoriaLocal from './Pages/local/Categoria';
 import Servicos from './Pages/local/Services';
+import Sponsor from './Pages/eventos/Sponsor';
 
 const router = createBrowserRouter([
   {
@@ -64,7 +65,7 @@ const router = createBrowserRouter([
       { path: '/eventos/gestao', element: <Gestao /> },
       { path: '/eventos/organizer', element: <Organizers /> },
       { path: '/eventos/category', element: <Categoria /> },
-      { path: '/eventos/type', element: <TypeEvent /> },
+      { path: '/eventos/sponsor', element: <Sponsor /> },
     ]
   },
   {

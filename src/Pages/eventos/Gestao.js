@@ -176,17 +176,15 @@ const Gestao = () => {
 
     const handleAddOk = async (e) => {
         setConfirmLoading(true);
-        console.log(form.getFieldsValue());
         const db = firebase.firestore();
 
         const imageFile = form.getFieldValue('coverImage')[0];
 
-
         // Opções de compressão
         const options = {
-            maxSizeMB: 1, // Tamanho máximo do arquivo em MB
-            maxWidthOrHeight: 800, // Tamanho máximo de largura ou altura
-            useWebWorker: true, // Usar Web Worker para compressão em segundo plano
+            maxSizeMB: 1,
+            maxWidthOrHeight: 800,
+            useWebWorker: true,
         };
 
         const responseURI = await fetch(imageFile.thumbUrl);
@@ -203,19 +201,17 @@ const Gestao = () => {
 
         const categoryIDs = form.getFieldValue('category');
 
-        let categoryPromises = categoryIDs.map(id => db.collection('categoria').doc(id).get());
-        let categoryDocs = await Promise.all(categoryPromises);
-        let categoriesData = categoryDocs.map(doc => ({ id: doc.id, ...doc.data() }));
-        console.log(categoriesData);
+        try {
+            // Get categories data
+            let categoryPromises = categoryIDs.map(id => db.collection('categoria').doc(id).get());
+            let categoryDocs = await Promise.all(categoryPromises);
+            let categoriesData = categoryDocs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        Promise.all([
-            db.collection('organizador').doc(organizerID).get(),
-        ]).then(([organizerDoc]) => {
+            // Get single organizer data
+            const organizerDoc = await db.collection('organizador').doc(organizerID).get();
             if (!organizerDoc.exists) {
-                console.error('One of the documents does not exist');
-                return;
+                throw new Error('Organizer does not exist');
             }
-
             const organizerData = { id: organizerDoc.id, ...organizerDoc.data() };
 
             let newEvent = {
@@ -240,47 +236,29 @@ const Gestao = () => {
             if (repeat && parseInt(form.getFieldValue('frequency')) > 1) {
                 for (let i = 1; i <= parseInt(form.getFieldValue('frequency')); i++) {
                     newEvent.data = moment(newEvent.data).add(7, 'days').toDate();
-                    db.collection('evento').add(newEvent)
-                        .then((docRef) => {
-                            fetchData();
-                        })
-                        .catch((error) => {
-                            notification.error({
-                                message: 'Error',
-                                description: 'Erro ao criar o evento'
-                            })
-                        }).finally(() => {
-                            setOpenAdd(false);
-                            setConfirmLoading(false);
-                        });
+                    await db.collection('evento').add(newEvent);
                 }
                 notification.success({
                     message: 'Success',
                     description: 'Eventos criados com sucesso'
                 })
             } else {
-                db.collection('evento').add(newEvent)
-                    .then((docRef) => {
-                        notification.success({
-                            message: 'Success',
-                            description: 'Evento criado com sucesso'
-                        })
-                        fetchData();
-                    })
-                    .catch((error) => {
-                        notification.error({
-                            message: 'Error',
-                            description: 'Erro ao criar o evento'
-                        })
-                    }).finally(() => {
-                        setOpenAdd(false);
-                        setConfirmLoading(false);
-                    });
+                await db.collection('evento').add(newEvent);
+                notification.success({
+                    message: 'Success',
+                    description: 'Evento criado com sucesso'
+                });
             }
-
-
-        });
-
+            fetchData();
+        } catch (error) {
+            notification.error({
+                message: 'Error',
+                description: 'Erro ao criar o evento'
+            });
+        } finally {
+            setOpenAdd(false);
+            setConfirmLoading(false);
+        }
     };
 
     const handleEditOk = async (e) => {
@@ -292,9 +270,9 @@ const Gestao = () => {
 
         // Opções de compressão
         const options = {
-            maxSizeMB: 1, // Tamanho máximo do arquivo em MB
-            maxWidthOrHeight: 800, // Tamanho máximo de largura ou altura
-            useWebWorker: true, // Usar Web Worker para compressão em segundo plano
+            maxSizeMB: 1,
+            maxWidthOrHeight: 800,
+            useWebWorker: true,
         };
 
         if (imageFile.originFileObj) {
@@ -310,24 +288,22 @@ const Gestao = () => {
             url = imageFile.url;
         }
 
-
         const categoryIDs = formEdit.getFieldValue('category');
-        console.log(categoryIDs)
-
-
         const organizerID = formEdit.getFieldValue('organizer');
 
-        const storageRef = getStorage();
+        try {
+            // Get categories and organizer data
+            const [categoryDocs, organizerDoc] = await Promise.all([
+                db.collection('categoria').where(firebase.firestore.FieldPath.documentId(), 'in', categoryIDs).get(),
+                db.collection('organizador').doc(organizerID).get()
+            ]);
 
+            if (!organizerDoc.exists) {
+                throw new Error('Organizer does not exist');
+            }
 
-        Promise.all([
-            db.collection('categoria').where(firebase.firestore.FieldPath.documentId(), 'in', categoryIDs).get(),
-            db.collection('organizador').doc(organizerID).get(),
-        ]).then(([categoryDoc, organizerDoc]) => {
-
-
+            const categoriesData = categoryDocs.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             const organizerData = { id: organizerDoc.id, ...organizerDoc.data() };
-            const categoriesData = categoryDoc.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
             const newEvent = {
                 name: formEdit.getFieldValue('name'),
@@ -346,28 +322,22 @@ const Gestao = () => {
                 deleted: false
             };
 
-            db.collection('evento').doc(formEdit.getFieldValue('id')).update(newEvent)
-                .then((docRef) => {
-                    notification.success({
-                        message: 'Success',
-                        description: 'Evento editado com sucesso'
-                    })
-                    fetchData();
-                })
-                .catch((error) => {
-                    notification.error({
-                        message: 'Error',
-                        description: 'Erro ao editar o evento'
-                    })
-                }).finally(() => {
-                    setOpenEdit(false);
-                    setConfirmLoading(false);
-                });
-
-        });
-
+            await db.collection('evento').doc(formEdit.getFieldValue('id')).update(newEvent);
+            notification.success({
+                message: 'Success',
+                description: 'Evento editado com sucesso'
+            });
+            fetchData();
+        } catch (error) {
+            notification.error({
+                message: 'Error',
+                description: 'Erro ao editar o evento'
+            });
+        } finally {
+            setOpenEdit(false);
+            setConfirmLoading(false);
+        }
     };
-
 
     const handleAddCancel = () => {
         setLoadScript(false);
@@ -404,7 +374,7 @@ const Gestao = () => {
             dataIndex: "organizer",
             render: (organizer) => (
                 <div>
-                    <div>{organizer.name}</div>
+                    <div>{organizer?.name || ''}</div>
                 </div>
             )
         },
@@ -695,11 +665,11 @@ const Gestao = () => {
                                     required={[{ required: true, message: "Please select the organizer" }]}
                                 >
                                     <Select
-                                        mode="multiple"
                                         placeholder="Selecione o organizador do evento"
                                         filterOption={(input, option) =>
                                             option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                                        } >
+                                        }
+                                    >
                                         {organizers.map(organizer => (
                                             <Option value={organizer.id}>{organizer.name}</Option>
                                         ))}
@@ -888,12 +858,11 @@ const Gestao = () => {
                                 label="Organizador do Evento"
                                 required={[{ required: true, message: "Please select the organizer" }]}
                             >
-                                <Select 
-                                placeholder="Selecione o organizador do evento"
-                                mode="multiple"
-                                filterOption={(input, option) =>
-                                    option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
-                                }
+                                <Select
+                                    placeholder="Selecione o organizador do evento"
+                                    filterOption={(input, option) =>
+                                        option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                                    }
                                 >
                                     {organizers.map(organizer => (
                                         <Option value={organizer.id}>{organizer.name}</Option>

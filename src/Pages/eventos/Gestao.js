@@ -58,6 +58,7 @@ const Gestao = () => {
         try {
             const db = firebase.firestore();
             const data = await db.collection("evento")
+                .where("deleted", "==", false)
                 .get();
             const disciplines = data.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             //order by name

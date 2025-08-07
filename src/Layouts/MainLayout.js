@@ -21,22 +21,59 @@ const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [see, setSee] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   useEffect(() => {
     setSee(false);
-    firebase.auth().onAuthStateChanged((user) => {
+    setCheckingAuth(true);
+    
+    firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
+        // Não está logado
         navigate('/account/login');
+        setCheckingAuth(false);
       } else {
-        setSee(true);
+        // Está logado - AGORA VAMOS VERIFICAR SE É ADMIN
+        try {
+          const adminSnapshot = await firebase.firestore()
+            .collection('administrador')
+            .where('uid', '==', user.uid)
+            .get();
+          
+          if (adminSnapshot.empty) {
+            // NÃO É ADMIN - BLOQUEAR ACESSO!
+            console.error('Acesso negado: Usuário não é administrador');
+            alert('Acesso negado! Você não tem permissões de administrador.');
+            
+            // Fazer logout e redirecionar
+            await firebase.auth().signOut();
+            navigate('/account/login');
+            setSee(false);
+          } else {
+            // É ADMIN - PERMITIR ACESSO
+            const adminData = adminSnapshot.docs[0].data();
+            localStorage.setItem('user', JSON.stringify(adminData));
+            setSee(true);
+            setIsAdmin(true);
+          }
+        } catch (error) {
+          console.error('Erro ao verificar permissões:', error);
+          await firebase.auth().signOut();
+          navigate('/account/login');
+        } finally {
+          setCheckingAuth(false);
+        }
       }
     });
-  }, []);
+  }, [navigate]);
 
   const [dialog, setDialog] = useState(false);
 
   const handleLogout = () => {
     firebase.auth().signOut().then(() => {
+      localStorage.removeItem('user');
+      localStorage.removeItem('username');
       setDialog(false);
       navigate('/account/login');
     }).catch((error) => {
@@ -46,9 +83,27 @@ const MainLayout = () => {
 
   const [selectedOption, setSelectedOption] = useState(0);
 
+  // Mostrar loading enquanto verifica autenticação
+  if (checkingAuth) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        flexDirection: 'column'
+      }}>
+        <div style={{ marginBottom: '20px' }}>
+          <img src={require('../assets/logo/logo_purple.png')} style={{ width: '100px' }} alt="Logo" />
+        </div>
+        <p>Verificando permissões...</p>
+      </div>
+    );
+  }
+
   return (
     <>
-      {see ?
+      {see && isAdmin ?
         <Layout style={{ minHeight: '100vh' }}>
           <Layout>
             <div className='flex flex-col gap-2'>

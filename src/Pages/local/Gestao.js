@@ -172,7 +172,8 @@ const GestaoLocal = () => {
                 lat: location.lat,
                 lng: location.lng,
                 coverImage: url,
-                views: 0
+                views: 0,
+                deleted: false
             };
 
             db.collection('local').add(newEvent)

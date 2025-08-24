@@ -230,7 +230,8 @@ const Gestao = () => {
                 locationName: location.location,
                 coverImage: url,
                 views: 0,
-                categoria: 'novo'
+                categoria: 'novo',
+                deleted: false
             };
 
             let repeat = form.getFieldValue('isRecurring');

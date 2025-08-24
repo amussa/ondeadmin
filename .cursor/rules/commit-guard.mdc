@@ -1,0 +1,23 @@
+---
+description: Bloqueio de commit/push sem autorização explícita do utilizador
+globs:
+alwaysApply: true
+---
+
+# REGRA CRÍTICA — commits e push
+- **Nunca** executar `git commit` ou `git push` sem pedido **explícito** do utilizador na conversa actual.
+- Processo correcto obrigatório:
+  1) Implementar alterações;
+  2) Mostrar **resumo** das mudanças (ficheiros alterados e diff sucinto);
+  3) **Perguntar** exactamente: **"Deseja que eu faça commit dessas alterações?"**;
+  4) Só executar `git commit`/`git push` **se autorizado**.
+- Se não houver autorização clara, **recusar** a operação e manter passos de commit/push como **pendentes**.
+- Em comandos shell gerados, substituir commits por linhas **comentadas** com nota `# pendente de autorização do utilizador`.
+- Quando autorizado:
+  - Usar a **mensagem de commit** fornecida pelo utilizador; se faltar, **pedir** a mensagem antes de executar.
+  - **Nunca** incluir sinal de exclamação (`!`) em mensagens de commit.
+  - Descrever os comandos que serão corridos **antes** de os executar.
+
+## Exemplos
+- ❌ Não fazer: `git commit -m "update!" && git push`
+- ✅ Fazer: mostrar resumo → perguntar: "Deseja que eu faça commit dessas alterações?" → só então executar, se autorizado → commit com mensagem sem `!`.
